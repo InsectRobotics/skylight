@@ -16,12 +16,12 @@ class SkyModel(object):
     alpha_default = -132.1
     beta_default = 59.77
 
-    def __init__(self, observer=None, sun=ephem.Sun(), nside=NSIDE):
-        self.sun = sun
+    def __init__(self, observer=None, nside=NSIDE):
+        self.sun = ephem.Sun()
         self.obs = observer
         if observer is None:
             self.obs = ephem.city("Edinburgh")
-            self.obs.date = datetime(2017, 6, 21, 0, 0, 0)
+            self.obs.date = datetime(2017, 6, 21, 10, 0, 0)
 
         # calculate the pixel indices
         i = np.arange(hp.nside2npix(nside))
@@ -52,18 +52,7 @@ class SkyModel(object):
         self.theta_s, self.phi_s = self.theta_s % np.pi, self.phi_s % (2 * np.pi)
 
         if show:
-            import matplotlib.pyplot as plt
-
-            plt.figure(1, figsize=(15, 5))
-            hp.orthview(self.theta, rot=self.VIEW_ROT, min=0, max=np.pi, flip="geo", cmap="Greys", half_sky=True,
-                        title="Elevation", unit=r'rad', sub=(1, 4, 1), fig=1)
-            hp.orthview(self.phi, rot=self.VIEW_ROT, min=0, max=2 * np.pi, flip="geo", cmap="Greys", half_sky=True,
-                        title="Azimuth", unit=r'rad', sub=(1, 4, 2), fig=1)
-            hp.orthview(self.theta_s, rot=self.VIEW_ROT, min=0, max=np.pi, flip="geo", cmap="Greys", half_sky=True,
-                        title="Elevation", unit=r'rad', sub=(1, 4, 3), fig=1)
-            hp.orthview(self.phi_s, rot=self.VIEW_ROT, min=0, max=2 * np.pi, flip="geo", cmap="Greys", half_sky=True,
-                        title="Azimuth", unit=r'rad', sub=(1, 4, 4), fig=1)
-            hp.projplot(lat, lon, 'yo')
+            self.plot_sun(self, fig=1)
 
         # calculate luminance of the sky
         self.si = self.scattering_indicatrix(self.theta_s)
@@ -72,30 +61,14 @@ class SkyModel(object):
         self.T = self.colour_temperature(self.L)
 
         if show:
-            plt.figure(2, figsize=(15, 5))
-            hp.orthview(self.si, rot=self.VIEW_ROT, min=0, max=10, flip="geo", cmap="Greys", half_sky=True,
-                        title="Scattering indicatrix", unit=r'', sub=(1, 4, 1), fig=2)
-            hp.orthview(self.lg, rot=self.VIEW_ROT, min=0, max=1, flip="geo", cmap="Greys", half_sky=True,
-                        title="Luminance gradation", unit=r'Cd/m^2', sub=(1, 4, 2), fig=2)
-            hp.orthview(self.L, rot=self.VIEW_ROT, min=0, max=5.6, flip="geo", cmap="Greys", half_sky=True,
-                        title="Luminance", unit=r'Cd/m^2', sub=(1, 4, 3), fig=2)
-            hp.orthview(self.T, rot=self.VIEW_ROT, min=0, max=257, flip="geo", cmap="Greys", half_sky=True,
-                        title="Colour temperature", unit=r'MK^(-1)', sub=(1, 4, 4), fig=2)
-            hp.projplot(lat, lon, 'yo')
+            self.plot_luminance(self, fig=2)
 
         # calculate the polarisation features
         self.DOP = 2 * rayleigh(self.theta_s)
         self.AOP = (self.phi_s + np.pi/2) % np.pi
 
         if show:
-            plt.figure(3, figsize=(15, 5))
-            hp.orthview(self.DOP, rot=self.VIEW_ROT, min=0, max=1, flip="geo", cmap="Greys", half_sky=True,
-                        title="Degree of (linear) Polarisation", unit=r'', sub=(1, 2, 1), fig=3)
-            hp.orthview(self.AOP, rot=self.VIEW_ROT, min=0, max=np.pi, flip="geo", cmap="Greys", half_sky=True,
-                        title="Angle of (linear) Polarisation", unit=r'rad', sub=(1, 2, 2), fig=3)
-            hp.projplot(lat, lon, 'yo')
-
-            plt.show()
+            self.plot_polarisation(self, fig=3, show=True)
 
     @classmethod
     def luminance(cls, x, z, a=a_default, b=b_default, c=c_default, d=d_default, e=e_default):
@@ -155,4 +128,66 @@ class SkyModel(object):
         :param beta: linear transformation of the temperature
         :return: the temperature of the colour (MK^(-1)) with respect to its luminance
         """
-        return -alpha + beta * np.log(L)
+        ct = np.zeros_like(L)
+        # compute the temperature of the colour only for the positive values of luminance (set zero values for the rest)
+        ct[L > 0] = -alpha + beta * np.log(L[L > 0])
+        return ct
+
+    @classmethod
+    def plot_sun(cls, sky, fig=1, show=False):
+        import matplotlib.pyplot as plt
+
+        lon, lat = sun2lonlat(sky.sun)
+        f = plt.figure(fig, figsize=(15, 5))
+        hp.orthview(sky.theta, rot=cls.VIEW_ROT, min=0, max=np.pi, flip="geo", cmap="Greys", half_sky=True,
+                    title="Elevation", unit=r'rad', sub=(1, 4, 1), fig=1)
+        hp.orthview(sky.phi, rot=cls.VIEW_ROT, min=0, max=2 * np.pi, flip="geo", cmap="Greys", half_sky=True,
+                    title="Azimuth", unit=r'rad', sub=(1, 4, 2), fig=1)
+        hp.orthview(sky.theta_s, rot=cls.VIEW_ROT, min=0, max=np.pi, flip="geo", cmap="Greys", half_sky=True,
+                    title="Elevation", unit=r'rad', sub=(1, 4, 3), fig=1)
+        hp.orthview(sky.phi_s, rot=cls.VIEW_ROT, min=0, max=2 * np.pi, flip="geo", cmap="Greys", half_sky=True,
+                    title="Azimuth", unit=r'rad', sub=(1, 4, 4), fig=1)
+        hp.projplot(lat, lon, 'yo')
+
+        if show:
+            plt.show()
+
+        return f
+
+    @classmethod
+    def plot_luminance(cls, sky, fig=1, show=False):
+        import matplotlib.pyplot as plt
+
+        lon, lat = sun2lonlat(sky.sun)
+        f = plt.figure(fig, figsize=(15, 5))
+        hp.orthview(sky.si, rot=cls.VIEW_ROT, min=0, max=10, flip="geo", cmap="Greys", half_sky=True,
+                    title="Scattering indicatrix", unit=r'', sub=(1, 4, 1), fig=2)
+        hp.orthview(sky.lg, rot=cls.VIEW_ROT, min=0, max=1, flip="geo", cmap="Greys", half_sky=True,
+                    title="Luminance gradation", unit=r'Cd/m^2', sub=(1, 4, 2), fig=2)
+        hp.orthview(sky.L, rot=cls.VIEW_ROT, min=0, max=5.6, flip="geo", cmap="Greys", half_sky=True,
+                    title="Luminance", unit=r'Cd/m^2', sub=(1, 4, 3), fig=2)
+        hp.orthview(sky.T, rot=cls.VIEW_ROT, min=0, max=257, flip="geo", cmap="Greys", half_sky=True,
+                    title="Colour temperature", unit=r'MK^(-1)', sub=(1, 4, 4), fig=2)
+        hp.projplot(lat, lon, 'yo')
+
+        if show:
+            plt.show()
+
+        return f
+
+    @classmethod
+    def plot_polarisation(cls, sky, fig=1, show=False):
+        import matplotlib.pyplot as plt
+
+        lon, lat = sun2lonlat(sky.sun)
+        f = plt.figure(fig, figsize=(15, 5))
+        hp.orthview(sky.DOP, rot=cls.VIEW_ROT, min=0, max=1, flip="geo", cmap="Greys", half_sky=True,
+                    title="Degree of (linear) Polarisation", unit=r'', sub=(1, 2, 1), fig=3)
+        hp.orthview(sky.AOP, rot=cls.VIEW_ROT, min=0, max=np.pi, flip="geo", cmap="Greys", half_sky=True,
+                    title="Angle of (linear) Polarisation", unit=r'rad', sub=(1, 2, 2), fig=3)
+        hp.projplot(lat, lon, 'yo')
+
+        if show:
+            plt.show()
+
+        return f
