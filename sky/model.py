@@ -26,20 +26,24 @@ class SkyModel(object):
         # calculate the pixel indices
         i = np.arange(hp.nside2npix(nside))
         # get the longitude and co-latitude with respect to the zenith
-        self.theta, self.phi = hp.pix2ang(nside, i)        # return longitude and co-latitude in radians
+        self.theta, self.phi = hp.pix2ang(nside, i)  # return longitude and co-latitude in radians
         # we initialise the sun at the zenith
         # so the angular distance between the sun and every point is equal to their distance from the zenith
         self.theta_s, self.phi_s = self.theta.copy(), self.phi.copy()
 
-        # initialise the scattering indicatrix with zeros
-        self.si = np.zeros_like(self.theta_s)   # scattering indicatrix
-        self.lg = np.zeros_like(self.theta)     # luminance gradation
-        self.L = np.zeros_like(self.theta)      # total luminance
-        self.T = np.zeros_like(self.theta)      # colour temperature
+        # initialise the luminance features
+        self.si = np.zeros_like(self.theta_s)  # scattering indicatrix
+        self.lg = np.zeros_like(self.theta)  # luminance gradation
+        self.L = np.zeros_like(self.theta)  # total luminance
+        self.T = np.zeros_like(self.theta)  # colour temperature
+
+        # initialise the electric field information
+        self.E_par = np.zeros_like(self.L)  # the electric wave parallel to the polarisation axis
+        self.E_per = np.zeros_like(self.L)  # the electric wave perpendicular to the polarisation axis
 
         # initialise the polarization features
-        self.DOP = np.zeros_like(self.theta)    # Degree of Polarisation
-        self.AOP = np.zeros_like(self.theta)    # Angle of Polarisation
+        self.DOP = np.zeros_like(self.theta)  # Degree of Polarisation
+        self.AOP = np.zeros_like(self.theta)  # Angle of Polarisation
 
     def generate(self, show=False):
         # update the relevant sun position
@@ -64,8 +68,15 @@ class SkyModel(object):
             self.plot_luminance(self, fig=2)
 
         # calculate the polarisation features
-        self.DOP = 2 * rayleigh(self.theta_s)
-        self.AOP = (self.phi_s + np.pi/2) % np.pi
+        self.DOP = degree_of_polarisation(self.theta_s)
+        # self.DOP = 2 * rayleigh(self.theta_s)
+        self.AOP = (self.phi_s + np.pi / 2) % np.pi
+
+        # analyse the electric field components to the parallel and the perpendicular to the polarisation axis
+        self.E_par = np.sqrt(self.L) * np.sqrt(self.DOP) * \
+            np.array([np.sin(self.AOP), np.cos(self.AOP)])
+        self.E_per = np.sqrt(self.L) * np.sqrt(1 - self.DOP) * \
+            np.array([np.sin(self.AOP + np.pi / 2), np.cos(self.AOP + np.pi / 2)])
 
         if show:
             self.plot_polarisation(self, fig=3, show=True)
@@ -101,7 +112,7 @@ class SkyModel(object):
         # apply border conditions to avoid dividing with zero
         z_p = np.all([z >= 0, z < np.pi / 2], axis=0)
         phi[z_p] = 1. + a * np.exp(b / np.cos(z[z_p]))
-        phi[np.isclose(z, np.pi/2)] = 1.
+        phi[np.isclose(z, np.pi / 2)] = 1.
         return phi
 
     @classmethod
@@ -116,7 +127,7 @@ class SkyModel(object):
         :param e: scalar -- affects the amplitude of the sinusoidal component
         :return:  the observed scattering indicatrix at the given element(s) -- [0, inf) for default parameters
         """
-        return 1. + c * (np.exp(d * x) - np.exp(d * np.pi/2)) + e * np.square(np.cos(x))
+        return 1. + c * (np.exp(d * x) - np.exp(d * np.pi / 2)) + e * np.square(np.cos(x))
 
     @classmethod
     def colour_temperature(cls, L, alpha=alpha_default, beta=beta_default):
@@ -191,3 +202,55 @@ class SkyModel(object):
             plt.show()
 
         return f
+
+
+class SkyPoint(object):
+    def __init__(self, altitude, azimuth):
+        self.altitude = altitude
+        self.azimuth = azimuth
+
+
+class PolarisedPoint(SkyPoint):
+    def __init__(self, altitude, azimuth, colour,
+                 lin_direction=0., lin_degree=0., cir_direction=0., cir_degree=0., elipticity=0.):
+        super(PolarisedPoint, self).__init__(altitude, azimuth)
+        self.colour = colour
+        self.lin_direction = lin_direction
+        self.lin_degree = lin_degree
+        self.cir_direction = cir_direction
+        self.cir_degree = cir_degree
+        self.elipticity = elipticity
+
+
+class Polariser(object):
+
+    def __init__(self, angle=0.):
+        self.angle = angle
+        self.R = rotation_matrix(angle)
+
+    def rotate(self, angle):
+        return self.fix_angle(self.angle + angle)
+
+    def fix_angle(self, angle):
+        self.angle = angle
+        self.R = rotation_matrix(angle)
+        return self
+
+    def apply(self, sky):
+        """
+        Applies the polarisation filter and return the relative intensity that passes through it
+        
+        :param sky: the sky model
+        :return: the percentage of the light that passes through
+        """
+        # the intensity that the observer would perceive before the filter
+        I_0 = (np.square(sky.E_par) + np.square(sky.E_per)).sum(axis=0)
+
+        # the intensity after applying the polarisation filter
+        I_1 = np.square(np.dot(self.R, sky.E_par)[1])
+
+        # compute the relevant light intensity
+        I = np.zeros_like(I_0)
+        I[I_0 > 0] = I_1[I_0 > 0] / I_0[I_0 > 0]
+
+        return I

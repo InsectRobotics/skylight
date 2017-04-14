@@ -17,10 +17,20 @@ def sun2lonlat(s, lonlat=False, show=False):
     else:  # return the lngitude and the co-latitude in radians
         return lon, colat
 
+
 def hard_sigmoid(x, s=10):
     return 1. / (1. + np.exp(-s * x))
+
 
 def rayleigh(x, sigma=np.pi/2):
     # make sure the input is not negative
     x = np.absolute(x)
     return (x / np.square(sigma)) * np.exp(-np.square(x) / (2 * np.square(sigma)))
+
+
+def degree_of_polarisation(x, h_max=.8):
+    return h_max * np.square(np.sin(x)) / (1. + np.square(np.cos(x)))
+
+
+def rotation_matrix(theta):
+    return np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
