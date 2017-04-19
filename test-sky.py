@@ -1,5 +1,6 @@
 from sky import SkyModel
 
 
-sky = SkyModel()
-sky.generate(show=True)
+for st in xrange(15):
+    sky = SkyModel(sky_type=st+1)
+    sky.generate(show=True)
