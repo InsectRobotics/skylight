@@ -1,6 +1,8 @@
 import numpy as np
 import healpy as hp
 import ephem
+from colorpy.illuminants import get_blackbody_illuminant
+from colorpy.rayleigh import rayleigh_illuminated_spectrum
 from datetime import datetime
 from .utils import *
 
@@ -10,7 +12,7 @@ class SkyModel(object):
     NSIDE = 32
     VIEW_ROT = (0, 90, 0)
     sky_type_default = 11
-    gradation_default = 4
+    gradation_default = 5
     indicatrix_default = 4
     alpha_default = -132.1
     beta_default = 59.77
@@ -47,6 +49,9 @@ class SkyModel(object):
         self.lg = np.zeros_like(self.theta)  # luminance gradation
         self.L = np.zeros_like(self.theta)  # total luminance
         self.T = np.zeros_like(self.theta)  # colour temperature
+        self.W = np.zeros(471)              # wavelengths
+        self.B = np.zeros((self.theta.shape[0], self.W.shape[0]))  # spectrum
+        self.mask = None
 
         # initialise the electric field information
         self.E_par = np.zeros_like(self.L)  # the electric wave parallel to the polarisation axis
@@ -69,12 +74,17 @@ class SkyModel(object):
         # calculate luminance of the sky
         self.si = self.scattering_indicatrix(self.theta_s, self.indicatrix)
         self.lg = self.luminance_gradation(self.theta, self.gradation)
-        Laz = self.luminance_gradation(np.zeros(1), self.gradation)
-        si_rel = self.si / self.scattering_indicatrix(np.array([lat]), self.indicatrix)
-        lg_rel = self.lg / Laz
-        # self.L = Laz * si_rel * lg_rel
-        self.L = si_rel * lg_rel
+        # Laz = self.luminance_gradation(np.zeros(1), self.gradation)
+        # si_rel = self.si / self.scattering_indicatrix(np.array([lat]), self.indicatrix)
+        # lg_rel = self.lg / Laz
+        # # self.L = Laz * si_rel * lg_rel
+        self.L = self.luminance(self.theta_s, self.theta, self.gradation, self.indicatrix)
+        self.mask = self.L > 0
         self.T = self.colour_temperature(self.L)
+        for i, t in enumerate(self.T[self.mask]):
+            b = rayleigh_illuminated_spectrum(get_blackbody_illuminant(t))
+            self.B[i, :] = b[:, 1]
+        self.W[:] = b[:, 0]
 
         if show:
             title = "Gradation towards zenith: {:d} | Scattering indicatrix: {:d} | {}".format(self.gradation,
@@ -168,10 +178,26 @@ class SkyModel(object):
         :param beta: linear transformation of the temperature
         :return: the temperature of the colour (MK^(-1)) with respect to its luminance
         """
-        ct = np.zeros_like(L)
+        gamma = cls.correlated_colour_temperature(L, alpha, beta)
+        T = np.zeros_like(gamma)
         # compute the temperature of the colour only for the positive values of luminance (set zero values for the rest)
-        ct[L > 0] = -alpha + beta * np.log(L[L > 0])
-        return ct
+        T[gamma > 0] = (10 ** 6) / gamma[gamma > 0]
+        return T
+
+    @classmethod
+    def correlated_colour_temperature(cls, L, alpha=alpha_default, beta=beta_default):
+        """
+        The correlated colour temperature expressed in Remeks (MK^(-1)).
+        
+        :param L: the observed luminance (cd/m^2)
+        :param alpha: constant shifting of temperature
+        :param beta: linear transformation of the temperature
+        :return: the correlated colour temperature (MK^(-1)) with respect to its luminance
+        """
+        gamma = np.zeros_like(L)
+        # compute the temperature of the colour only for the positive values of luminance (set zero values for the rest)
+        gamma[L > 0] = -alpha + beta * np.log(L[L > 0])
+        return gamma
 
     @classmethod
     def plot_sun(cls, sky, fig=1, title="", mode=15, sub=(1, 4, 1), show=False):
@@ -236,8 +262,8 @@ class SkyModel(object):
                         title="Luminance", unit=r'Cd/m^2', sub=(sub[0], sub[1], sub2), fig=fig)
             sub2 += 1
         if (mode >> 0) % 2 == 1:
-            hp.orthview(sky.T, rot=cls.VIEW_ROT, min=0, max=257, flip="geo", cmap="Greys", half_sky=True,
-                        title="Colour temperature", unit=r'MK^(-1)', sub=(sub[0], sub[1], sub2), fig=fig)
+            hp.orthview(sky.T, rot=cls.VIEW_ROT, min=0, max=20000, flip="geo", cmap="Greys", half_sky=True,
+                        title="Colour temperature", unit=r'K', sub=(sub[0], sub[1], sub2), fig=fig)
             sub2 += 1
         # hp.projplot(lat, lon, 'yo')
         f.suptitle(title)
@@ -275,6 +301,22 @@ class SkyModel(object):
             plt.show()
 
         return f
+
+    @classmethod
+    def rotate(cls, sky, angle):
+        rot = hp.Rotator(rot=(angle, 0, 0))
+        sky.theta, sky.phi = rot(sky.theta, sky.phi)
+        return sky
+
+    @classmethod
+    def generate_features(cls, sky):
+        # s = sky.L[sky.mask]  # ignore luminance for now and use only the spectrum
+        b = sky.B[sky.mask, :]              # spectrum and luminance information (473)
+        d = sky.DOP[sky.mask, np.newaxis]   # degree of polarisation (1)
+        a = sky.AOP[sky.mask, np.newaxis]   # angle of polarisation (1)
+
+        features = np.concatenate((b, d, a), axis=1)
+        return features
 
 
 class SkyPoint(object):
