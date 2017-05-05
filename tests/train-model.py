@@ -1,19 +1,13 @@
 import numpy as np
-from keras.models import Model
-from keras.layers import Dense, Conv2D, Input, Dropout, Flatten
-
-
-def rad2compass(phi, length=8):
-    alpha = np.arange(length) * 2 * np.pi / length
-    I = np.cos(phi[..., np.newaxis] - alpha)
-    return I
+from learn import CompassModel, angular_distance_deg, rad2compass
 
 
 model_name = "seville-jun-dec"
-names = ["seville-4-20170621", "seville-4-20171221"]
+names = ["seville-4-20170621", "seville-4-20170921", "seville-4-20171221"]
 
 x, y = [], []
-for name in names:
+for name in names[:-1]:
+    print "Loading '%s.npz' ..." % name
     src = np.load('%s.npz' % name)
     x.append(src['x'].reshape((-1, 1, 104, 473)))
     y.append(rad2compass(np.deg2rad(src['y'])))
@@ -24,19 +18,10 @@ y = np.concatenate(tuple(y), axis=0)
 print x.shape
 print y.shape, y.min(), y.max()
 
-inp = Input((1, 104, 473))
-out = Conv2D(10, 1, 473, activation='relu')(inp)
-out = Flatten()(out)
-out = Dense(500, activation='relu')(out)
-out = Dropout(0.5)(out)
-out = Dense(32, activation='relu')(out)
-out = Dropout(0.5)(out)
-out = Dense(8, activation='tanh')(out)
-
-model = Model(inp, out)
-model.load_weights("seville-4-20170621.h5" % name)
+model = CompassModel()
+model.load_weights("%s.h5" % model_name)
 model.summary()
-model.compile(loss='mae', optimizer='rmsprop')
+model.compile(loss=angular_distance_deg, optimizer='rmsprop')
 
 stats = model.fit(x, y, batch_size=64, nb_epoch=50, shuffle=True)
 model.save_weights("%s.h5" % model_name, overwrite=True)
