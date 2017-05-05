@@ -3,7 +3,12 @@ from learn import CompassModel, angular_distance_deg, rad2compass
 
 
 model_name = "seville-jun-dec"
-names = ["seville-4-20170621", "seville-4-20170921", "seville-4-20171221"]
+names = ["seville-4-20170321", "seville-4-20170621", "seville-4-20170921", "seville-4-20171221"]
+
+model = CompassModel()
+model.load_weights("%s.h5" % model_name)
+model.summary()
+model.compile(loss=angular_distance_deg, optimizer='rmsprop')
 
 x, y = [], []
 for name in names[:-1]:
@@ -17,11 +22,6 @@ y = np.concatenate(tuple(y), axis=0)
 
 print x.shape
 print y.shape, y.min(), y.max()
-
-model = CompassModel()
-model.load_weights("%s.h5" % model_name)
-model.summary()
-model.compile(loss=angular_distance_deg, optimizer='rmsprop')
 
 stats = model.fit(x, y, batch_size=64, nb_epoch=50, shuffle=True)
 model.save_weights("%s.h5" % model_name, overwrite=True)

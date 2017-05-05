@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 
 def rad2compass(phi, length=8):
@@ -9,19 +10,26 @@ def rad2compass(phi, length=8):
 
 def compass2rad(I, length=8):
     alpha = np.arange(length) * 2 * np.pi / length
-    x0, y0 = (I * np.cos(alpha)).sum(axis=-1), (I * np.sin(alpha)).sum(axis=-1)
-    phi = np.arctan(y0 / x0) % (2 * np.pi)
+    x, y = np.sum(I * np.cos(alpha), axis=-1), np.sum(I * np.sin(alpha), axis=-1)
+    phi = np.arctan(y / x) % (2 * np.pi)
     return phi
 
 
 def compass2rad2(I, length=8):
     alpha = np.arange(length) * 2 * np.pi / length
-    x0, y0 = (I * np.cos(alpha)).sum(axis=-1), (I * np.sin(alpha)).sum(axis=-1)
-    phi = np.arctan2(y0, x0) % (2 * np.pi)
+    x, y = np.sum(I * np.cos(alpha), axis=-1), np.sum(I * np.sin(alpha), axis=-1)
+    phi = np.arctan2(y, x) % (2 * np.pi)
+    return phi
+
+
+def compass2rad_tf(I, length=8):
+    alpha = np.arange(length) * 2 * np.pi / length
+    x, y = np.sum(I * np.cos(alpha), axis=-1), np.sum(I * np.sin(alpha), axis=-1)
+    phi = tf.atan(y / x) % (2 * np.pi)
     return phi
 
 
 def angdist(a, b):
     d = np.absolute(a - b)
-    d -= (d > np.pi) * (2 * np.pi)
+    d -= tf.cast(d > np.pi, tf.float32) * (2 * np.pi)
     return np.absolute(d)
