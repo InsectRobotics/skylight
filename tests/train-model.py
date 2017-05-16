@@ -1,11 +1,12 @@
 import numpy as np
-from learn import CompassModel, angular_distance_deg, rad2compass
+from learn import ChromaticityModel, angular_distance_deg, rad2compass
 
 
-model_name = "seville-full"
-names = ["seville-4-20170321", "seville-4-20170621", "seville-4-20170921", "seville-4-20171221"]
+model_name = "seville-cr-jun"
+# names = ["seville-bb-4-20170321", "seville-bb-4-20170621", "seville-bb-4-20170921", "seville-bb-4-20171221"]
+names = ["seville-cr-32-20170621", "seville-cr-32-20170121"]
 
-model = CompassModel()
+model = ChromaticityModel()
 # model.load_weights("%s.h5" % model_name)
 model.summary()
 model.compile(loss='mae', optimizer='rmsprop')
@@ -14,7 +15,7 @@ x, y = [], []
 for name in names[:-1]:
     print "Loading '%s.npz' ..." % name
     src = np.load('%s.npz' % name)
-    x.append(src['x'].reshape((-1, 1, 104, 473)))
+    x.append(src['x'].reshape((-1, 1, 6208, 5)))
     y.append(rad2compass(np.deg2rad(src['y'])))
 
 x = np.concatenate(tuple(x), axis=0)
