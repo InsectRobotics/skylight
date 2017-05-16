@@ -1,12 +1,16 @@
 import numpy as np
+import ephem
 import yaml
 import os
+from sklearn.externals import joblib
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 with open(__dir__ + "/../colour/CIE-standard-parameters.yaml", 'r') as f:
     try:
         STANDARD_PARAMETERS = yaml.load(f)
     except yaml.YAMLError as exc:
         print exc
+gradpar = joblib.load(__dir__ + '/gradation.pkl')
+indipar = joblib.load(__dir__ + '/indicatrix.pkl')
 
 
 def sky_clearness(Z, Dh, I, kapa=1.041):
@@ -72,20 +76,36 @@ def get_sky_description(sky_type, indicatrix=None):
 
 
 def get_sky_gradation(sky_type):
-    if 1 <= sky_type <= 15:
-        return STANDARD_PARAMETERS["type"][sky_type - 1]["gradation"]
+    if len(np.shape(sky_type)) == 0 or np.shape(np.squeeze(sky_type))[0] == 1:
+        if 1 <= sky_type <= 15:
+            return STANDARD_PARAMETERS["type"][sky_type - 1]["gradation"]
+        else:
+            return -1
     else:
-        return -1
+        return gradpar.predict(np.reshape(sky_type, (-1, 5))[:, :2]).squeeze() + 1
 
 
 def get_sky_indicatrix(sky_type):
-    if 1 <= sky_type <= 15:
-        return STANDARD_PARAMETERS["type"][sky_type - 1]["indicatrix"]
+    if len(np.shape(sky_type)) == 0 or np.shape(np.squeeze(sky_type))[0] == 1:
+        if 1 <= sky_type <= 15:
+            return STANDARD_PARAMETERS["type"][sky_type - 1]["indicatrix"]
+        else:
+            return -1
     else:
-        return -1
+        return indipar.predict(np.reshape(sky_type, (-1, 5))[:, 2:]).squeeze() + 1
 
 
-def get_sky_type(gradation, indicatrix):
+def get_sky_type(gradation, indicatrix=None):
+    """
+    
+    :param gradation: the gradation type or a vector with the luminance parameters (when indicatrix=None) 
+    :param indicatrix: the indicatrix type
+    :return: 
+    """
+    if indicatrix is None:
+        indicatrix = get_sky_indicatrix(gradation)
+        gradation = get_sky_gradation(gradation)
+
     if not (1 <= gradation <= 6):
         return -1
     if not (1 <= indicatrix <= 6):
@@ -151,3 +171,10 @@ def degree_of_polarisation(x, h_max=.8):
 
 def rotation_matrix(theta):
     return np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+
+
+def get_seville_observer():
+    seville = ephem.Observer()
+    seville.lat = '37.392509'
+    seville.lon = '-5.983877'
+    return seville
