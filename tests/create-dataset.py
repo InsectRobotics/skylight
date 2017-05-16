@@ -9,7 +9,7 @@ sun = ephem.Sun()
 seville = ephem.Observer()
 seville.lat = '37.392509'
 seville.lon = '-5.983877'
-seville.date = datetime(2017, 3, 21, 0, 0, 0)
+seville.date = datetime(2017, 7, 21, 0, 0, 0)
 
 # set time-limits on sunset and sunrise
 cur = seville.next_rising(sun).datetime()
@@ -43,4 +43,4 @@ while cur <= end:
 x = np.array(x)
 y = np.array(y)
 
-np.savez_compressed('seville-4-20170321.npz', x=x, y=y)
+np.savez_compressed('seville-4-20170721.npz', x=x, y=y)

@@ -2,8 +2,13 @@ import numpy as np
 from learn import CompassModel, angular_distance_deg, rad2compass
 
 
-model_name = "seville-jun-dec"
-names = ["seville-4-20170621", "seville-4-20170921", "seville-4-20171221"]
+model_name = "seville-full"
+names = ["seville-4-20170321", "seville-4-20170621", "seville-4-20170921", "seville-4-20171221"]
+
+model = CompassModel()
+# model.load_weights("%s.h5" % model_name)
+model.summary()
+model.compile(loss='mae', optimizer='rmsprop')
 
 x, y = [], []
 for name in names[:-1]:
@@ -18,14 +23,9 @@ y = np.concatenate(tuple(y), axis=0)
 print x.shape
 print y.shape, y.min(), y.max()
 
-model = CompassModel()
-model.load_weights("%s.h5" % model_name)
-model.summary()
-model.compile(loss=angular_distance_deg, optimizer='rmsprop')
-
-stats = model.fit(x, y, batch_size=64, nb_epoch=50, shuffle=True)
+stats = model.fit(x, y, batch_size=512, nb_epoch=500, shuffle=True)
 model.save_weights("%s.h5" % model_name, overwrite=True)
-np.savez_compressed("%s-stats.npz" % model_name, stats=stats)
+# np.savez_compressed("%s-stats.npz" % model_name, stats=stats)
 
 score = model.evaluate(x, y, batch_size=64)
 

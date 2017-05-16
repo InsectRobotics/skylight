@@ -2,11 +2,11 @@ from backend import *
 
 
 def angular_distance_rad(y_target, y_predict):
-    return angdist(compass2rad(y_target), compass2rad(y_predict))
+    return angdist(compass2rad_tf(y_target), compass2rad_tf(y_predict))
 
 
 def angular_distance_deg(y_target, y_predict):
-    return np.rad2deg(angular_distance_rad(y_target, y_predict))
+    return 180 * angular_distance_rad(y_target, y_predict) / np.pi
 
 
 def angular_distance_per(y_target, y_predict):
