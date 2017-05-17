@@ -1,0 +1,38 @@
+name: "chromaticity-rnn-20170621"
+layers:
+  -
+    name: "SkyFeatures"
+    class: Input
+#    shape: (1, 6208, 5)
+    batch_shape: (360, 1, 6208, 5)
+  -
+    name: "PixelConv10"
+    class: Conv2D
+    filters: 10
+    kernel_size: (1, 5)
+    data_format: "channels_first"
+    activation: "relu"
+  -
+    name: "PixelHidden0"
+    class: Flatten
+  -
+    name: "PixelHidden1"
+    class: Dense
+    units: 500
+  -
+    name: "Dropout-0.5"
+    class: Dropout
+    rate: 0.5
+  -
+    name: "Reshape1"
+    class: Reshape
+    target_shape: (1, -1)
+  -
+    name: "RNN-Compass"
+    class: LSTM
+    units: 8
+    return_sequences: False
+    stateful: True
+    activation: "tanh"
+filters:
+  - "PixelConv10"

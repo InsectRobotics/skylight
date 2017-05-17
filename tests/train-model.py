@@ -1,33 +1,28 @@
 import numpy as np
-from learn import ChromaticityModel, angular_distance_deg, rad2compass
+from learn import from_file
+import matplotlib.pyplot as plt
 
 
 model_name = "seville-cr-jun"
 # names = ["seville-bb-4-20170321", "seville-bb-4-20170621", "seville-bb-4-20170921", "seville-bb-4-20171221"]
-names = ["seville-cr-32-20170621", "seville-cr-32-20170121"]
+names = ["seville-cr-32-20170621", "seville-cr-32-20170601"]
 
-model = ChromaticityModel()
-# model.load_weights("%s.h5" % model_name)
+model = from_file("chrom-mon-rnn.yaml")
+model.compile(optimizer="rmsprop", loss="mae", metrics=["accuracy"])
 model.summary()
-model.compile(loss="mse", optimizer='rmsprop')
+# model.load_weights("%s.h5" % model_name)
 
-x, y = [], []
-for name in names[:-1]:
-    print "Loading '%s.npz' ..." % name
-    src = np.load('%s.npz' % name)
-    x.append(src['x'].reshape((-1, 1, 6208, 5)))
-    y.append(rad2compass(np.deg2rad(src['y'])))
+loss, acc = model.train([names[0]], valid_data=[names[1]])
 
-x = np.concatenate(tuple(x), axis=0)
-y = np.concatenate(tuple(y), axis=0)
+# plot progress
+plt.figure(1, figsize=(15, 20))
 
-print x.shape
-print y.shape, y.min(), y.max()
+plt.subplot(121)
+plt.plot(loss)
+plt.ylim([0, 1])
 
-stats = model.fit(x, y, batch_size=64, nb_epoch=50, shuffle=True)
-model.save_weights("%s.h5" % model_name, overwrite=True)
-np.savez_compressed("%s-stats.npz" % model_name, stats=stats)
+plt.subplot(122)
+plt.plot(acc)
+plt.ylim([0, 1])
 
-score = model.evaluate(x, y, batch_size=64)
-
-print score
+plt.show()

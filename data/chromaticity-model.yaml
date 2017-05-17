@@ -1,0 +1,51 @@
+name: "chromaticity-model"
+layers:
+  -
+    name: "SkyFeatures"
+    class: Input
+    shape: (1, 6208, 5)
+  -
+    name: "PixelConv10"
+    class: Conv2D
+    filters: 10
+    kernel_size: (1, 5)
+    data_format: "channels_first"
+    activation: "relu"
+  -
+    name: "PixelHidden0"
+    class: Flatten
+  -
+    name: "PixelHidden1"
+    class: Dense
+    units: 500
+  -
+    name: "Dropout1-0.5"
+    class: Dropout
+    rate: 0.5
+  -
+    name: "PixelHidden2"
+    class: Dense
+    units: 100
+  -
+    name: "PixelHidden2"
+    class: Dense
+    units: 100
+  -
+    name: "PixelHidden3"
+    class: Dense
+    units: 100
+  -
+    name: "Dropout2-0.5"
+    class: Dropout
+    rate: 0.5
+  -
+    name: "Reshape1"
+    class: Reshape
+    target_shape: (1, -1)
+  -
+    name: "Compass"
+    class: Dense
+    units: 8
+    activation: "tanh"
+filters:
+  - "PixelConv10"
