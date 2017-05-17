@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 # initialise observer in Seville on 21/06/2017
 sun = ephem.Sun()
 seville = get_seville_observer()
-date = datetime(2017, 6, 1, 0, 0, 0)
+date = datetime(2017, 9, 21, 0, 0, 0)
 seville.date = date
 
 # set time-limits on sunset and sunrise

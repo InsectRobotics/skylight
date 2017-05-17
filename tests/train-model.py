@@ -3,7 +3,7 @@ from learn import from_file
 import matplotlib.pyplot as plt
 
 
-model_name = "seville-cr-jun"
+model_name = "seville-cr-jun-dec"
 # names = ["seville-bb-4-20170321", "seville-bb-4-20170621", "seville-bb-4-20170921", "seville-bb-4-20171221"]
 names = ["seville-cr-32-20170621", "seville-cr-32-20170601"]
 
@@ -14,7 +14,8 @@ model.summary()
 x_train, y_train = model._load_dataset([names[0]], directionwise=True)
 x_test, y_test = model._load_dataset([names[1]], directionwise=True)
 reset_state = x_train.shape[0] / 360
-hist = model.train((x_train, y_train), valid_data=(x_test, y_test), reset_state=reset_state)
+hist = model.train((x_train, y_train), valid_data=(x_test, y_test),
+                   nb_epoch=300, reset_state=reset_state)
 
 # plot progress
 plt.figure(1, figsize=(15, 20))

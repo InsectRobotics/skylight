@@ -37,10 +37,10 @@ class CompassModel(Model):
             x_test, y_test = self._load_dataset(valid_data)
             kwargs['validation_data'] = (x_test, y_test)
 
-        loss, acc = self.fit(x, y, callbacks=[ResetStatesCallback(reset_state)], **kwargs)
+        hist = self.fit(x, y, callbacks=[ResetStatesCallback(reset_state)], **kwargs)
         self.save_weights(__dir__ + "/../data/%s.h5" % self.name, overwrite=True)
 
-        return loss, acc
+        return hist
 
     def test(self, data, batch_size=1):
         x, y = self._load_dataset(data)
