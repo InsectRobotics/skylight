@@ -4,7 +4,7 @@ layers:
     name: "SkyFeatures"
     class: Input
 #    shape: (1, 6208, 5)
-    batch_shape: (360, 1, 6208, 5)
+    batch_shape: (1, 1, 6208, 5)
   -
     name: "PixelConv10"
     class: Conv2D

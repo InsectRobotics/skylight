@@ -8,14 +8,15 @@ from backend import rad2compass
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 
 
-# class ResetStatesCallback(Callback):
-#     def __init__(self):
-#         self.counter = 0
-#
-#     def on_batch_begin(self, batch, logs={}):
-#         if self.counter % max_len == 0:
-#             self.model.reset_states()
-#         self.counter += 1
+class ResetStatesCallback(Callback):
+    def __init__(self, max_len=30):
+        self.counter = 0
+        self.max_len = max_len
+
+    def on_batch_begin(self, batch, logs={}):
+        if self.counter % self.max_len == 0:
+            self.model.reset_states()
+        self.counter += 1
 
 
 class CompassModel(Model):
@@ -25,7 +26,7 @@ class CompassModel(Model):
         if filters is not None:
             self.filters = filters
 
-    def train(self, train_data, valid_data=None, batch_size=360, nb_epoch=100, shuffle=False):
+    def train(self, train_data, valid_data=None, batch_size=1, nb_epoch=100, shuffle=False, reset_state=30):
         x, y = self._load_dataset(train_data)
         kwargs = {
             'batch_size': batch_size,
@@ -36,12 +37,12 @@ class CompassModel(Model):
             x_test, y_test = self._load_dataset(valid_data)
             kwargs['validation_data'] = (x_test, y_test)
 
-        loss, acc = self.fit(x, y, **kwargs)
+        loss, acc = self.fit(x, y, callbacks=[ResetStatesCallback(reset_state)], **kwargs)
         self.save_weights(__dir__ + "/../data/%s.h5" % self.name, overwrite=True)
 
         return loss, acc
 
-    def test(self, data, batch_size=360):
+    def test(self, data, batch_size=1):
         x, y = self._load_dataset(data)
 
         x = np.concatenate(tuple(x), axis=0)
@@ -50,9 +51,9 @@ class CompassModel(Model):
         return self.evaluate(x, y, batch_size=batch_size)
 
     @classmethod
-    def _load_dataset(cls, data, x_shape=(-1, 1, 6208, 5)):
+    def _load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), directionwise=False):
         # BlackBody x_shape=(-1, 1, 104, 473)
-        if isinstance(data, list):
+        if isinstance(data, list) or isinstance(data, tuple):
             if isinstance(data[0], basestring):
                 names = data
                 x, y = [], []
@@ -66,10 +67,21 @@ class CompassModel(Model):
                 y = np.concatenate(tuple(y), axis=0)
             elif len(data) == 2:
                 x, y = data
-        elif data is dict:
+            else:
+                x, y = np.zeros(x_shape)
+        elif isinstance(data, dict):
             x, y = data['x'].reshape(x_shape), rad2compass(np.deg2rad(data['y']))
         else:
             raise AttributeError("Unrecognised input data!")
+
+        if directionwise:
+            x_, y_ = [], []
+            for a in xrange(360):
+                x_.append(x[a::360])
+                y_.append(y[a::360])
+            x = np.concatenate(tuple(x_), axis=0)
+            y = np.concatenate(tuple(y_), axis=0)
+
         return x, y
 
 

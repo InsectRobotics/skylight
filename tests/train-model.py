@@ -11,18 +11,20 @@ model = from_file("chrom-mon-rnn.yaml")
 model.compile(optimizer="rmsprop", loss="mae", metrics=["accuracy"])
 model.summary()
 # model.load_weights("%s.h5" % model_name)
-
-loss, acc = model.train([names[0]], valid_data=[names[1]])
+x_train, y_train = model._load_dataset([names[0]], directionwise=True)
+x_test, y_test = model._load_dataset([names[1]], directionwise=True)
+reset_state = x_train.shape[0] / 360
+hist = model.train((x_train, y_train), valid_data=(x_test, y_test), reset_state=reset_state)
 
 # plot progress
 plt.figure(1, figsize=(15, 20))
 
 plt.subplot(121)
-plt.plot(loss)
+plt.plot(hist['loss'])
 plt.ylim([0, 1])
 
 plt.subplot(122)
-plt.plot(acc)
+plt.plot(hist['accuracy'])
 plt.ylim([0, 1])
 
 plt.show()
