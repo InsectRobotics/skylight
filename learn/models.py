@@ -9,13 +9,19 @@ __dir__ = os.path.dirname(os.path.realpath(__file__))
 
 
 class ResetStatesCallback(Callback):
-    def __init__(self, max_len=30):
+    def __init__(self, reset_state=[30]):
+        self.state = 0
         self.counter = 0
-        self.max_len = max_len
+        self.reset_state = reset_state if isinstance(reset_state, list) else [reset_state]
+        self.max_len = self.reset_state[0]
 
     def on_batch_begin(self, batch, logs={}):
         if self.counter % self.max_len == 0:
             self.model.reset_states()
+        if self.counter // self.max_len > 1:
+            self.state = (self.state + 1) % len(self.reset_state)
+            self.max_len += self.reset_state[self.state]
+            print "HEY!", self.state, self.max_len
         self.counter += 1
 
 
@@ -26,7 +32,7 @@ class CompassModel(Model):
         if filters is not None:
             self.filters = filters
 
-    def train(self, train_data, valid_data=None, batch_size=1, nb_epoch=100, shuffle=False, reset_state=30):
+    def train(self, train_data, valid_data=None, batch_size=360, nb_epoch=100, shuffle=False, reset_state=None):
         x, y = self._load_dataset(train_data)
         kwargs = {
             'batch_size': batch_size,
@@ -37,12 +43,14 @@ class CompassModel(Model):
             x_test, y_test = self._load_dataset(valid_data)
             kwargs['validation_data'] = (x_test, y_test)
 
-        hist = self.fit(x, y, callbacks=[ResetStatesCallback(reset_state)], **kwargs)
+        if reset_state is not None:
+            kwargs['callbacks'] = [ResetStatesCallback(reset_state)]
+        hist = self.fit(x, y, **kwargs)
         self.save_weights(__dir__ + "/../data/%s.h5" % self.name, overwrite=True)
 
         return hist
 
-    def test(self, data, batch_size=1):
+    def test(self, data, batch_size=360):
         x, y = self._load_dataset(data)
 
         x = np.concatenate(tuple(x), axis=0)
@@ -51,8 +59,9 @@ class CompassModel(Model):
         return self.evaluate(x, y, batch_size=batch_size)
 
     @classmethod
-    def _load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), directionwise=False):
+    def _load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), directionwise=False, ret_reset_state=False):
         # BlackBody x_shape=(-1, 1, 104, 473)
+        reset_state = []
         if isinstance(data, list) or isinstance(data, tuple):
             if isinstance(data[0], basestring):
                 names = data
@@ -62,6 +71,7 @@ class CompassModel(Model):
                     src = np.load(__dir__ + '/../data/%s.npz' % name)
                     x.append(src['x'].reshape(x_shape))
                     y.append(rad2compass(np.deg2rad(src['y'])))
+                    reset_state.append(x[-1].shape[0] / 360)
 
                 x = np.concatenate(tuple(x), axis=0)
                 y = np.concatenate(tuple(y), axis=0)
@@ -82,7 +92,10 @@ class CompassModel(Model):
             x = np.concatenate(tuple(x_), axis=0)
             y = np.concatenate(tuple(y_), axis=0)
 
-        return x, y
+        if ret_reset_state:
+            return x, y, reset_state
+        else:
+            return x, y
 
 
 def from_file(filename):

@@ -1,15 +1,14 @@
-name: "chromaticity-rnn-20170621"
+name: "polarisation-model"
 layers:
   -
     name: "SkyFeatures"
     class: Input
-#    shape: (1, 6208, 5)
-    batch_shape: (360, 1, 6208, 5)
+    shape: (1, 6208, 2)
   -
     name: "PixelConv10"
     class: Conv2D
     filters: 10
-    kernel_size: (1, 5)
+    kernel_size: (1, 2)
     data_format: "channels_first"
     activation: "relu"
   -
@@ -20,7 +19,23 @@ layers:
     class: Dense
     units: 500
   -
-    name: "Dropout-0.5"
+    name: "Dropout1-0.5"
+    class: Dropout
+    rate: 0.5
+  -
+    name: "PixelHidden2"
+    class: Dense
+    units: 100
+  -
+    name: "PixelHidden2"
+    class: Dense
+    units: 100
+  -
+    name: "PixelHidden3"
+    class: Dense
+    units: 100
+  -
+    name: "Dropout2-0.5"
     class: Dropout
     rate: 0.5
   -
@@ -28,11 +43,9 @@ layers:
     class: Reshape
     target_shape: (1, -1)
   -
-    name: "RNN-Compass"
-    class: LSTM
+    name: "Compass"
+    class: Dense
     units: 8
-    return_sequences: False
-    stateful: True
     activation: "tanh"
 filters:
   - "PixelConv10"
