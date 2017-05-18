@@ -27,20 +27,21 @@ class ResetStatesCallback(Callback):
 
 class CompassModel(Model):
 
-    def __init__(self, inputs, outputs, filters=None, name=None):
+    def __init__(self, inputs, outputs, data_shape=None, filters=None, name=None):
         super(CompassModel, self).__init__(inputs=inputs, outputs=outputs, name=name)
         if filters is not None:
             self.filters = filters
+        self.data_shape = data_shape
 
     def train(self, train_data, valid_data=None, batch_size=360, nb_epoch=100, shuffle=False, reset_state=None):
-        x, y = self._load_dataset(train_data)
+        x, y = self.load_dataset(train_data)
         kwargs = {
             'batch_size': batch_size,
             'nb_epoch': nb_epoch,
             'shuffle': shuffle
         }
         if valid_data is not None:
-            x_test, y_test = self._load_dataset(valid_data)
+            x_test, y_test = self.load_dataset(valid_data)
             kwargs['validation_data'] = (x_test, y_test)
 
         kwargs['callbacks'] = [TensorBoard(log_dir=__dir__ + "/../logs")]
@@ -52,7 +53,7 @@ class CompassModel(Model):
         return hist
 
     def test(self, data, batch_size=360):
-        x, y = self._load_dataset(data)
+        x, y = self.load_dataset(data)
 
         x = np.concatenate(tuple(x), axis=0)
         y = np.concatenate(tuple(y), axis=0)
@@ -60,9 +61,12 @@ class CompassModel(Model):
         return self.evaluate(x, y, batch_size=batch_size)
 
     @classmethod
-    def _load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), directionwise=False, ret_reset_state=False):
+    def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5),
+                     pol=True, directionwise=False, ret_reset_state=False):
         # BlackBody x_shape=(-1, 1, 104, 473)
         reset_state = []
+        if pol:
+            x_shape = x_shape[:-1] + (2,)
         if isinstance(data, list) or isinstance(data, tuple):
             if isinstance(data[0], basestring):
                 names = data
@@ -70,7 +74,10 @@ class CompassModel(Model):
                 for name in names:
                     print "Loading '%s.npz' ..." % name
                     src = np.load(__dir__ + '/../data/%s.npz' % name)
-                    x.append(src['x'].reshape(x_shape))
+                    x0 = src['x']
+                    if pol:
+                        x0 = x0[..., -2:]
+                    x.append(x0.reshape(x_shape))
                     y.append(rad2compass(np.deg2rad(src['y'])))
                     reset_state.append(x[-1].shape[0] / 360)
 
@@ -81,7 +88,9 @@ class CompassModel(Model):
             else:
                 x, y = np.zeros(x_shape)
         elif isinstance(data, dict):
-            x, y = data['x'].reshape(x_shape), rad2compass(np.deg2rad(data['y']))
+            if pol:
+                x0 = data['x'][..., -2:]
+            x, y = x0.reshape(x_shape), rad2compass(np.deg2rad(data['y']))
         else:
             raise AttributeError("Unrecognised input data!")
 
@@ -100,36 +109,61 @@ class CompassModel(Model):
 
 
 def from_file(filename):
+    params = __load_config__(filename)
+    models = []
+    layers = params['layers']
+    x = inp = layers[0]
+    for i, layer in enumerate(layers):
+        if i == 0:
+            continue
+        # layers[i] = _create_layer(**layer)
+        x = layers[i](x)
+        if layers[i].name in params['filters']:
+            models.append(Model(inp, x, name="%s-%s" % (params['name'], layers[i].name)))
+
+    if not ('data_shape' in params.keys()):
+        print inp
+        params['data_shape'] = (-1,) + tuple(inp.get_shape().as_list())[1:]
+    return CompassModel(inp, x, data_shape=params['data_shape'], name=params['name'], filters=models)
+
+
+def __load_config__(filename):
     with open(__dir__ + "/../data/" + filename, 'r') as f:
         try:
             params = yaml.load(f)
         except yaml.YAMLError as exc:
             print exc
 
-    models = []
-    layers = params['layers']
-    x = inp = _create_layer(**layers[0])
-    for i, layer in enumerate(layers[1:]):
-        layers[i] = _create_layer(**layer)
-        x = layers[i](x)
-        if layers[i].name in params['filters']:
-            models.append(Model(inp, x, name="%s-%s" % (params['name'], layers[i].name)))
-
-    return CompassModel(inp, x, name=params['name'], filters=models)
+    params = __eval__(params)
+    # print params
+    return params
 
 
-def _create_layer(**kwargs):
+def __eval__(param):
+    try:
+        if isinstance(param, list):
+            for l in xrange(len(param)):
+                param[l] = __eval__(param[l])
+        elif isinstance(param, dict):
+            for k in param.keys():
+                param[k] = __eval__(param[k])
+                if 'layers' in k:
+                    for l, layer in enumerate(param[k]):
+                        param[k][l] = __create_layer(**layer)
+        else:
+            param = eval(param)
+    except NameError:
+        pass
+    except TypeError:
+        pass
+    return param
+
+
+def __create_layer(**kwargs):
     if not ('class' in kwargs.keys()):
         raise AttributeError("No 'class' key found. Unable to create layer!")
 
-    c = eval(kwargs.pop('class'))
-    for k in kwargs.keys():
-        try:
-            kwargs[k] = eval(kwargs[k])
-        except NameError:
-            pass
-        except TypeError:
-            pass
+    c = kwargs.pop('class')
     return c(**kwargs)
 
 

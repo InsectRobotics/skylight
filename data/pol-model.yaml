@@ -1,4 +1,5 @@
 name: "polarisation-model"
+data_shape: (-1, 1, 6208, 2)
 layers:
   -
     name: "SkyFeatures"
@@ -27,21 +28,17 @@ layers:
     class: Dense
     units: 100
   -
-    name: "PixelHidden2"
+    name: "PixelHidden3"
     class: Dense
     units: 100
   -
-    name: "PixelHidden3"
+    name: "PixelHidden4"
     class: Dense
     units: 100
   -
     name: "Dropout2-0.5"
     class: Dropout
     rate: 0.5
-  -
-    name: "Reshape1"
-    class: Reshape
-    target_shape: (1, -1)
   -
     name: "Compass"
     class: Dense
