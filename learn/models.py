@@ -2,7 +2,7 @@ import numpy as np
 import yaml
 import os
 from keras.models import Model
-from keras.callbacks import Callback
+from keras.callbacks import Callback, TensorBoard
 from keras.layers import Dense, Conv2D, Input, Dropout, Flatten, LSTM, Reshape
 from backend import rad2compass
 __dir__ = os.path.dirname(os.path.realpath(__file__))
@@ -18,10 +18,10 @@ class ResetStatesCallback(Callback):
     def on_batch_begin(self, batch, logs={}):
         if self.counter % self.max_len == 0:
             self.model.reset_states()
-        if self.counter // self.max_len > 1:
+        if self.counter // self.max_len > 0:
             self.state = (self.state + 1) % len(self.reset_state)
             self.max_len += self.reset_state[self.state]
-            print "HEY!", self.state, self.max_len
+            # print "\nHEY!", self.state, self.reset_state[self.state], self.max_len
         self.counter += 1
 
 
@@ -43,8 +43,9 @@ class CompassModel(Model):
             x_test, y_test = self._load_dataset(valid_data)
             kwargs['validation_data'] = (x_test, y_test)
 
+        kwargs['callbacks'] = [TensorBoard(log_dir=__dir__ + "/../logs")]
         if reset_state is not None:
-            kwargs['callbacks'] = [ResetStatesCallback(reset_state)]
+            kwargs['callbacks'].append(ResetStatesCallback(reset_state))
         hist = self.fit(x, y, **kwargs)
         self.save_weights(__dir__ + "/../data/%s.h5" % self.name, overwrite=True)
 
