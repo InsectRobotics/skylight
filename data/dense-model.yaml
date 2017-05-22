@@ -9,14 +9,21 @@ layers:
     name: "PixelHidden1"
     class: Dense
     units: 360
+    activation: "softmax"
   -
-    name: "Dropout1-0.9"
-    class: Dropout
-    rate: 0.9
+    name: "PixelHidden2"
+    class: Dense
+    units: 360
+    activation: "relu"
   -
     name: "Compass"
     class: Dense
     units: 8
     activation: "tanh"
+  -
+    name: "Angle"
+    class: Lambda
+    function: cos_compass2rad_tf
+    output_shape: (1,)
 filters:
   - "PixelHidden1"

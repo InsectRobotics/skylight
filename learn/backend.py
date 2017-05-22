@@ -29,6 +29,11 @@ def compass2rad_tf(I, length=8):
     return phi
 
 
+def cos_compass2rad_tf(I, length=8):
+    phi = compass2rad_tf(I, length)
+    return tf.cos(phi)
+
+
 def angdist(a, b):
     d = np.absolute(a - b)
     d -= tf.cast(d > np.pi, tf.float32) * (2 * np.pi)

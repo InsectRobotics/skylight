@@ -3,8 +3,8 @@ import yaml
 import os
 from keras.models import Model
 from keras.callbacks import Callback, TensorBoard
-from keras.layers import Dense, Conv2D, Input, Dropout, Flatten, LSTM, Reshape
-from backend import rad2compass
+from keras.layers import Dense, Conv2D, Input, Dropout, Flatten, LSTM, Reshape, Lambda
+from backend import rad2compass, compass2rad_tf
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 
 
