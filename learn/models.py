@@ -61,7 +61,7 @@ class CompassModel(Model):
         return self.evaluate(x, y, batch_size=batch_size)
 
     @classmethod
-    def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5),
+    def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), cx=True,
                      pol=True, directionwise=False, ret_reset_state=False):
         # BlackBody x_shape=(-1, 1, 104, 473)
         reset_state = []
@@ -74,23 +74,32 @@ class CompassModel(Model):
                 for name in names:
                     print "Loading '%s.npz' ..." % name
                     src = np.load(__dir__ + '/../data/%s.npz' % name)
-                    x0 = src['x']
+                    x0, y0 = src['x'], np.deg2rad(src['y'])
                     if pol:
                         x0 = x0[..., -2:]
+                    if cx:
+                        y0 = rad2compass(y0)
                     x.append(x0.reshape(x_shape))
-                    y.append(rad2compass(np.deg2rad(src['y'])))
+                    y.append(y0)
                     reset_state.append(x[-1].shape[0] / 360)
 
                 x = np.concatenate(tuple(x), axis=0)
                 y = np.concatenate(tuple(y), axis=0)
             elif len(data) == 2:
                 x, y = data
+                if pol:
+                    x = x[..., -2:]
+                if cx:
+                    y = rad2compass(y)
             else:
-                x, y = np.zeros(x_shape)
+                x, y = np.zeros(x_shape), np.zeros(x_shape[0])
         elif isinstance(data, dict):
+            x0, y0 = data['x'], np.deg2rad(data['y'])
             if pol:
                 x0 = data['x'][..., -2:]
-            x, y = x0.reshape(x_shape), rad2compass(np.deg2rad(data['y']))
+            if cx:
+                y0 = rad2compass(y0)
+            x, y = x0.reshape(x_shape), y0
         else:
             raise AttributeError("Unrecognised input data!")
 

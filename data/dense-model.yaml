@@ -1,0 +1,26 @@
+name: "simple-model"
+data_shape: (-1, 1, 6208, 2)
+layers:
+  -
+    name: "SkyFeatures"
+    class: Input
+    shape: (12416,)
+  -
+    name: "PixelHidden1"
+    class: Dense
+    units: 100
+  -
+    name: "PixelHidden2"
+    class: Dense
+    units: 100
+  -
+    name: "Dropout2-0.5"
+    class: Dropout
+    rate: 0.5
+  -
+    name: "Compass"
+    class: Dense
+    units: 8
+    activation: "tanh"
+filters:
+  - "PixelHidden1"
