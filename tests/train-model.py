@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 # names = ["seville-bb-4-20170321", "seville-bb-4-20170621", "seville-bb-4-20170921", "seville-bb-4-20171221"]
 names = [
     "seville-cr-32-20170321",
-    # "seville-cr-32-20170621",
-    # "seville-cr-32-20170921",
-    # "seville-cr-32-20171221",
+    "seville-cr-32-20170621",
+    "seville-cr-32-20170921",
+    "seville-cr-32-20171221",
     "seville-cr-32-20170601"
 ]
 
@@ -28,7 +28,7 @@ x_test, y_test = x_test[i], y_test[i]
 print x_test.shape, y_test.shape
 # reset_state = x_train.shape[0] / 360
 hist = model.train((x_train, y_train), valid_data=(x_test, y_test),
-                   epochs=300)
+                   epochs=500)
 
 # e_train = model.evaluate(x_train, y_train)
 # e_test = model.evaluate(x_test, y_test)

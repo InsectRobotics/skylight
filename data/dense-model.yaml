@@ -6,6 +6,16 @@ layers:
     class: Input
     shape: (12416,)
   -
+    name: "Hidden1"
+    class: Dense
+    units: 500
+    activation: "relu"
+  -
+    name: "Hidden2"
+    class: Dense
+    units: 500
+    activation: "relu"
+  -
     name: "Compass"
     class: Dense
     units: 360
