@@ -28,7 +28,7 @@ x_test, y_test = x_test[i], y_test[i]
 print x_test.shape, y_test.shape
 # reset_state = x_train.shape[0] / 360
 hist = model.train((x_train, y_train), valid_data=(x_test, y_test),
-                   epochs=100)
+                   epochs=300)
 
 # e_train = model.evaluate(x_train, y_train)
 # e_test = model.evaluate(x_test, y_test)
