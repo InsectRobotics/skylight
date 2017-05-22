@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 # names = ["seville-bb-4-20170321", "seville-bb-4-20170621", "seville-bb-4-20170921", "seville-bb-4-20171221"]
 names = [
     "seville-cr-32-20170321",
-    # "seville-cr-32-20170621",
-    # "seville-cr-32-20170921",
-    # "seville-cr-32-20171221",
+    "seville-cr-32-20170621",
+    "seville-cr-32-20170921",
+    "seville-cr-32-20171221",
     "seville-cr-32-20170601"
 ]
 
