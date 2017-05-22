@@ -11,10 +11,18 @@ layers:
     units: 500
     activation: "relu"
   -
+    name: "Dropout1-0.5"
+    class: Dropout
+    rate: 0.5
+  -
     name: "Hidden2"
     class: Dense
     units: 500
     activation: "relu"
+  -
+    name: "Dropout2-0.5"
+    class: Dropout
+    rate: 0.5
   -
     name: "Compass"
     class: Dense
