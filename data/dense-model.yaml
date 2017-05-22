@@ -6,24 +6,9 @@ layers:
     class: Input
     shape: (12416,)
   -
-    name: "PixelHidden1"
+    name: "Compass"
     class: Dense
     units: 360
     activation: "softmax"
-  -
-    name: "PixelHidden2"
-    class: Dense
-    units: 360
-    activation: "relu"
-  -
-    name: "Compass"
-    class: Dense
-    units: 8
-    activation: "tanh"
-  -
-    name: "Angle"
-    class: Lambda
-    function: cos_compass2rad_tf
-    output_shape: (1,)
 filters:
-  - "PixelHidden1"
+  - "Compass"

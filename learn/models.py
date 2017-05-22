@@ -33,15 +33,15 @@ class CompassModel(Model):
             self.filters = filters
         self.data_shape = data_shape
 
-    def train(self, train_data, valid_data=None, batch_size=360, nb_epoch=100, shuffle=False, reset_state=None):
-        x, y = self.load_dataset(train_data)
+    def train(self, train_data, valid_data=None, batch_size=360, epochs=100, shuffle=False, reset_state=None):
+        x, y = train_data
         kwargs = {
             'batch_size': batch_size,
-            'nb_epoch': nb_epoch,
+            'epochs': epochs,
             'shuffle': shuffle
         }
         if valid_data is not None:
-            x_test, y_test = self.load_dataset(valid_data)
+            x_test, y_test = valid_data
             kwargs['validation_data'] = (x_test, y_test)
 
         kwargs['callbacks'] = [TensorBoard(log_dir=__dir__ + "/../logs")]
@@ -61,12 +61,22 @@ class CompassModel(Model):
         return self.evaluate(x, y, batch_size=batch_size)
 
     @classmethod
-    def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), cx=True,
+    def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), y_shape=(-1, 8),
                      pol=True, directionwise=False, ret_reset_state=False):
+        """
+        
+        :param data: the data to load. Can be a string denoting the path of the file to load, a dictionary with 'x' and
+         'y' keys, or a tuple with the inputs in the first position and the outputs in the second one
+        :param x_shape: the input shape
+        :param y_shape: the output shape 
+        :param pol: True to keep only the polarisation information
+        :param directionwise: True to change the order of the data and sort the using the direction
+        :param ret_reset_state: True to return the reset state indexes
+        :return: x, y (, reset_state)
+        """
         # BlackBody x_shape=(-1, 1, 104, 473)
+        pol = pol or x_shape[-1] == 2
         reset_state = []
-        if pol:
-            x_shape = x_shape[:-1] + (2,)
         if isinstance(data, list) or isinstance(data, tuple):
             if isinstance(data[0], basestring):
                 names = data
@@ -74,34 +84,22 @@ class CompassModel(Model):
                 for name in names:
                     print "Loading '%s.npz' ..." % name
                     src = np.load(__dir__ + '/../data/%s.npz' % name)
-                    x0, y0 = src['x'], np.deg2rad(src['y'])
-                    if pol:
-                        x0 = x0[..., -2:]
-                    if cx:
-                        y0 = rad2compass(y0)
-                    x.append(x0.reshape(x_shape))
-                    y.append(y0)
+                    x.append(src['x'])
+                    y.append(src['y'])
                     reset_state.append(x[-1].shape[0] / 360)
 
                 x = np.concatenate(tuple(x), axis=0)
                 y = np.concatenate(tuple(y), axis=0)
             elif len(data) == 2:
                 x, y = data
-                if pol and len(x.shape) > 2:
-                    x = x[..., -2:]
-                if cx and ((len(y.shape) > 1 and y.shape[-1] == 1) or len(y.shape) <= 1):
-                    y = rad2compass(y)
             else:
-                x, y = np.zeros(x_shape), np.zeros(x_shape[0])
+                x, y = np.zeros(x_shape), np.zeros(y_shape)
         elif isinstance(data, dict):
-            x0, y0 = data['x'], np.deg2rad(data['y'])
-            if pol:
-                x0 = data['x'][..., -2:]
-            if cx:
-                y0 = rad2compass(y0)
-            x, y = x0.reshape(x_shape), y0
+            x, y = data['x'], data['y']
         else:
             raise AttributeError("Unrecognised input data!")
+        x = cls.__transform_input(x, x_shape, pol)
+        y = cls.__transform_output(y, y_shape)
 
         if directionwise:
             x_, y_ = [], []
@@ -115,6 +113,40 @@ class CompassModel(Model):
             return x, y, reset_state
         else:
             return x, y
+
+    @classmethod
+    def __transform_input(cls, x, x_shape=(-1, 1, 6208, 5), pol=False):
+        if pol and len(x.shape) > 2:
+            x_shape = x_shape[:-1] + (2,)
+            x = x[..., -2:]
+        return x.reshape(x_shape)
+
+    @classmethod
+    def __transform_output(cls, y, y_shape=(-1, 8)):
+        if len(y_shape) < 2:
+            y_shape = (-1,) + y_shape
+        if len(y.shape) > 1:
+            if y.shape[-1] == 8:
+                if y_shape[-1] == 8:
+                    return y
+                y = np.rad2deg(compass2rad(y))
+            elif y.shape[-1] == 360:
+                if y_shape[-1] == 360:
+                    return y
+                y = np.argmax(y, axis=-1)
+            elif y.shape[-1] == 1:
+                pass
+            else:
+                raise AttributeError("Unknown output shape: %s" % str(y_shape))
+
+        if y_shape[-1] == 8:
+            y = rad2compass(np.deg2rad(y))
+        elif y_shape[-1] == 360:
+            y = np.eye(360)[y]
+        else:
+            y = np.deg2rad(y)
+
+        return y.reshape(y_shape)
 
 
 def from_file(filename):
