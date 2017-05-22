@@ -87,9 +87,9 @@ class CompassModel(Model):
                 y = np.concatenate(tuple(y), axis=0)
             elif len(data) == 2:
                 x, y = data
-                if pol:
+                if pol and len(x.shape) > 2:
                     x = x[..., -2:]
-                if cx:
+                if cx and ((len(y.shape) > 1 and y.shape[-1] == 1) or len(y.shape) <= 1):
                     y = rad2compass(y)
             else:
                 x, y = np.zeros(x_shape), np.zeros(x_shape[0])
