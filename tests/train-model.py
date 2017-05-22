@@ -17,10 +17,14 @@ model.compile(optimizer="rmsprop", loss="mae", metrics=["accuracy"])
 model.summary()
 # model.load_weights("%s.h5" % model_name)
 x_train, y_train = model.load_dataset(names[:-1], pol=True, directionwise=False)
-x_train = x_train.reshape((x_train[0], -1))
+x_train = x_train.reshape((x_train.shape[0], -1))
+i = np.all(~np.isnan(x_train), axis=1)
+x_train, y_train = x_train[i], y_train[i]
 print x_train.shape, y_train.shape
 x_test, y_test = model.load_dataset(names[-1:], pol=True, directionwise=False)
-x_test = x_test.reshape((x_test[0], -1))
+x_test = x_test.reshape((x_test.shape[0], -1))
+i = np.all(~np.isnan(x_test), axis=1)
+x_test, y_test = x_test[i], y_test[i]
 print x_test.shape, y_test.shape
 # reset_state = x_train.shape[0] / 360
 hist = model.train((x_train, y_train), valid_data=(x_test, y_test),
