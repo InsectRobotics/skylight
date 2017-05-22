@@ -1,5 +1,5 @@
 name: "simple-model"
-data_shape: (-1, 1, 6208, 2)
+data_shape: (-1, 12416)
 layers:
   -
     name: "SkyFeatures"
@@ -8,15 +8,11 @@ layers:
   -
     name: "PixelHidden1"
     class: Dense
-    units: 500
+    units: 360
   -
-    name: "PixelHidden2"
-    class: Dense
-    units: 200
-  -
-    name: "Dropout2-0.5"
+    name: "Dropout1-0.9"
     class: Dropout
-    rate: 0.5
+    rate: 0.9
   -
     name: "Compass"
     class: Dense

@@ -41,13 +41,13 @@ plt.subplot(121)
 for i in xrange(N):
     plt.plot(x_new[(i*360):((i+1)*360), 0], np.rad2deg(y[(i*360):((i+1)*360)]))
 plt.ylim([0, 360])
-plt.title("Testing data dim=1")
+plt.title("Training data dim=1")
 
 plt.subplot(122)
 for i in xrange(N):
     plt.plot(x_new[(i*360):((i+1)*360), 1], np.rad2deg(y[(i*360):((i+1)*360)]))
 plt.ylim([0, 360])
-plt.title("Testing data dim=2")
+plt.title("Training data dim=2")
 
 fig = plt.figure(2)
 ax = fig.gca(projection='3d')
