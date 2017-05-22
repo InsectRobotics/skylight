@@ -18,15 +18,11 @@ layers:
   -
     name: "Hidden1"
     class: Dense
-    units: 500
-  -
-    name: "Dropout1-0.5"
-    class: Dropout
-    rate: 0.5
+    units: 1000
   -
     name: "Hidden2"
     class: Dense
-    units: 500
+    units: 1000
   -
     name: "Dropout2-0.5"
     class: Dropout
