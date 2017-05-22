@@ -1,5 +1,5 @@
 import numpy as np
-from learn import from_file
+from learn import from_file, angular_distance_per
 import matplotlib.pyplot as plt
 
 
@@ -29,6 +29,12 @@ print x_test.shape, y_test.shape
 # reset_state = x_train.shape[0] / 360
 hist = model.train((x_train, y_train), valid_data=(x_test, y_test),
                    nb_epoch=300)
+
+p_train = model.predict(x_train)
+p_test = model.predict(x_test)
+
+print "Training error:", 1. - angular_distance_per(p_train, y_train).mean()
+print "Test error:", 1. - angular_distance_per(p_test, y_test).mean()
 
 # plot progress
 plt.figure(1, figsize=(15, 20))
