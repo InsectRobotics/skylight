@@ -8,11 +8,11 @@ layers:
   -
     name: "PixelHidden1"
     class: Dense
-    units: 100
+    units: 500
   -
     name: "PixelHidden2"
     class: Dense
-    units: 100
+    units: 200
   -
     name: "Dropout2-0.5"
     class: Dropout
