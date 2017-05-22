@@ -39,12 +39,24 @@ print "Test error:", 1. - angular_distance_per(p_test, y_test).mean()
 # plot progress
 plt.figure(1, figsize=(15, 20))
 
-plt.subplot(121)
-plt.plot(hist['loss'])
+plt.subplot(221)
+plt.plot(hist.history['loss'])
+plt.title("Training loss")
 plt.ylim([0, 1])
 
-plt.subplot(122)
-plt.plot(hist['accuracy'])
+plt.subplot(222)
+plt.plot(1. - hist.history['acc'])
+plt.title("Training error")
+plt.ylim([0, 1])
+
+plt.subplot(223)
+plt.plot(hist.history['val_loss'])
+plt.title("Validation loss")
+plt.ylim([0, 1])
+
+plt.subplot(224)
+plt.plot(1. - hist.history['val_acc'])
+plt.title("Validation error")
 plt.ylim([0, 1])
 
 plt.show()
