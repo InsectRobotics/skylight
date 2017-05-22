@@ -9,9 +9,10 @@ names = [
     "seville-cr-32-20170621",
     "seville-cr-32-20170921",
     "seville-cr-32-20171221",
-    "seville-cr-32-20170601"]
+    "seville-cr-32-20170601"
+]
 
-model = from_file("pol-model.yaml")
+model = from_file("dense-model.yaml")
 model.compile(optimizer="rmsprop", loss="mae", metrics=["accuracy"])
 model.summary()
 # model.load_weights("%s.h5" % model_name)
