@@ -9,8 +9,45 @@ with open(__dir__ + "/../colour/CIE-standard-parameters.yaml", 'r') as f:
         STANDARD_PARAMETERS = yaml.load(f)
     except yaml.YAMLError as exc:
         print exc
-gradpar = joblib.load(__dir__ + '/gradation.pkl')
-indipar = joblib.load(__dir__ + '/indicatrix.pkl')
+try:
+    gradpar = joblib.load(__dir__ + '/gradation.pkl')
+except IOError:
+    from sklearn.linear_model import LogisticRegression
+
+    x, y = [], []
+    for gradation in xrange(1, 7):
+        a = STANDARD_PARAMETERS["gradation"][gradation]["a"]
+        b = STANDARD_PARAMETERS["gradation"][gradation]["b"]
+
+        x.append(np.array([a, b]))
+        y.append(np.array([gradation - 1]))
+
+    x, y = np.array(x), np.array(y)
+
+    gradpar = LogisticRegression(C=5)
+    gradpar.fit(x, y)
+
+    joblib.dump(gradpar, __dir__ + '/gradation.pkl')
+try:
+    indipar = joblib.load(__dir__ + '/indicatrix.pkl')
+except IOError:
+    from sklearn.linear_model import LogisticRegression
+
+    x, y = [], []
+    for indicatrix in xrange(1, 7):
+        c = STANDARD_PARAMETERS["indicatrix"][indicatrix]["c"]
+        d = STANDARD_PARAMETERS["indicatrix"][indicatrix]["d"]
+        e = STANDARD_PARAMETERS["indicatrix"][indicatrix]["e"]
+
+        x.append(np.array([c, d, e]))
+        y.append(np.array([indicatrix - 1]))
+
+    x, y = np.array(x), np.array(y)
+
+    indipar = LogisticRegression(C=5)
+    indipar.fit(x, y)
+
+    joblib.dump(indipar, __dir__ + '/indicatrix.pkl')
 
 
 def sky_clearness(Z, Dh, I, kapa=1.041):
