@@ -1,0 +1,29 @@
+name: "simple-model"
+data_shape: (-1, 1, 6208, 2)
+layers:
+  -
+    name: "SkyFeatures"
+    class: Input
+    shape: (1, 6208, 2)
+  -
+    name: "Conv"
+    class: Conv2D
+    filters: 1
+    kernel_size: (1, 2)
+    data_format: "channels_first"
+    activation: "relu"
+  -
+    name: "Flatten"
+    class: Flatten
+  -
+    name: "Hidden"
+    class: Dense
+    units: 360
+    activation: "relu"
+  -
+    name: "Compass"
+    class: Dense
+    units: 1
+    activation: "linear"
+filters:
+  - "Conv"
