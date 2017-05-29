@@ -4,8 +4,12 @@ import os
 from keras.models import Model
 from keras.callbacks import Callback, TensorBoard
 from keras.layers import *
+from keras.regularizers import *
 from backend import *
+from learn.whitening import transform as trans, pca, zca
 __dir__ = os.path.dirname(os.path.realpath(__file__))
+__data__ = __dir__ + "/../data/"
+__logs__ = __dir__ + "/../logs/"
 
 
 class ResetStatesCallback(Callback):
@@ -27,38 +31,67 @@ class ResetStatesCallback(Callback):
 
 class CompassModel(Model):
 
-    def __init__(self, inputs, outputs, data_shape=None, filters=None, name=None):
+    def __init__(self, inputs, outputs, data_shape=None, filters=None, name=None,
+                 transform=None, optimizer="rmsprop", loss="mae", metrics=["accuracy"],
+                 epochs=100, batch_size=360, shuffle=False, reset_state=None):
         super(CompassModel, self).__init__(inputs=inputs, outputs=outputs, name=name)
         if filters is not None:
             self.filters = filters
         self.data_shape = data_shape
+        self.transform = transform
+        self.optimizer = optimizer
+        self.loss = loss
+        self.metrics = metrics
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.reset_state = reset_state
 
-    def train(self, train_data, valid_data=None, batch_size=360, epochs=100, shuffle=False, reset_state=None):
-        x, y = train_data
+        print vars(self)
+
+    def train(self, train_data, valid_data=None):
+
+        # compile the model
+        self.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
+
+        # set training parameters
         kwargs = {
-            'batch_size': batch_size,
-            'epochs': epochs,
-            'shuffle': shuffle
+            'batch_size': self.batch_size,
+            'epochs': self.epochs,
+            'shuffle': self.shuffle
         }
+
+        # set and transform training data
+        x, y = train_data
+        if self.transform is not None:
+            x = self.transform(x)
+        x = x.reshape(self.data_shape)
+
+        # set and transform validation data
         if valid_data is not None:
             x_test, y_test = valid_data
-            kwargs['validation_data'] = (x_test, y_test)
+            if self.transform is not None:
+                x_test = self.transform(x_test)
+            kwargs['validation_data'] = (x_test.reshape(self.data_shape), y_test)
 
-        kwargs['callbacks'] = [TensorBoard(log_dir=__dir__ + "/../logs")]
-        if reset_state is not None:
-            kwargs['callbacks'].append(ResetStatesCallback(reset_state))
+        # set callbacks
+        kwargs['callbacks'] = [TensorBoard(log_dir=__logs__)]
+        if self.reset_state is not None:
+            kwargs['callbacks'].append(ResetStatesCallback(self.reset_state))
+
+        # train model
         hist = self.fit(x, y, **kwargs)
-        self.save_weights(__dir__ + "/../data/%s.h5" % self.name, overwrite=True)
+
+        # save the weights
+        self.save_weights(__data__ + "%s.h5" % self.name, overwrite=True)
 
         return hist
 
-    def test(self, data, batch_size=360):
-        x, y = self.load_dataset(data)
-
-        x = np.concatenate(tuple(x), axis=0)
-        y = np.concatenate(tuple(y), axis=0)
-
-        return self.evaluate(x, y, batch_size=batch_size)
+    def predict(self, x, **kwargs):
+        if 'batch_size' not in kwargs.keys():
+            kwargs['batch_size'] = self.batch_size
+        x = self.transform(x)
+        return super(CompassModel, self).predict(x, **kwargs)
 
     @classmethod
     def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), y_shape=(-1, 8),
@@ -152,7 +185,7 @@ class CompassModel(Model):
 def from_file(filename):
     params = __load_config__(filename)
     models = []
-    layers = params['layers']
+    layers = params.pop('layers')
     x = inp = layers[0]
     for i, layer in enumerate(layers):
         if i == 0:
@@ -161,11 +194,11 @@ def from_file(filename):
         x = layers[i](x)
         if layers[i].name in params['filters']:
             models.append(Model(inp, x, name="%s-%s" % (params['name'], layers[i].name)))
-
+    params['filters'] = models
     if not ('data_shape' in params.keys()):
         print inp
         params['data_shape'] = (-1,) + tuple(inp.get_shape().as_list())[1:]
-    return CompassModel(inp, x, data_shape=params['data_shape'], name=params['name'], filters=models)
+    return CompassModel(inp, x, **params)
 
 
 def __load_config__(filename):
@@ -183,20 +216,36 @@ def __load_config__(filename):
 def __eval__(param):
     try:
         if isinstance(param, list):
-            for l in xrange(len(param)):
-                param[l] = __eval__(param[l])
+            param = __eval_list__(param)
         elif isinstance(param, dict):
-            for k in param.keys():
-                param[k] = __eval__(param[k])
-                if 'layers' in k:
-                    for l, layer in enumerate(param[k]):
-                        param[k][l] = __create_layer(**layer)
+            param = __eval_dict__(param)
         else:
             param = eval(param)
     except NameError:
         pass
     except TypeError:
         pass
+    return param
+
+
+def __eval_list__(param):
+    for l in xrange(len(param)):
+        param[l] = __eval__(param[l])
+    return param
+
+
+def __eval_dict__(param):
+    for k in param.keys():
+        param[k] = __eval__(param[k])
+        if 'layers' in k:
+            for l in xrange(len(param[k])):
+                param[k][l] = __create_layer(**param[k][l])
+        elif 'regularizer' in k:
+            r = param[k].keys()[-1]
+            param[k] = __eval__(r)(param[k][r])
+        elif 'transform' in k:
+            kwargs = param[k].copy()
+            param[k] = lambda x: trans(x, **kwargs)
     return param
 
 

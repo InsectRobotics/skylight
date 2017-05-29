@@ -1,5 +1,10 @@
 name: "simple-model"
 data_shape: (-1, 1, 6208, 2)
+optimizer: "nadam"
+loss: "mse"
+epochs: 200
+shuffle: True
+batch_size: 10000
 layers:
   -
     name: "SkyFeatures"
@@ -19,11 +24,23 @@ layers:
     name: "Hidden1"
     class: Dense
     units: 360
+    kernel_regularizer:
+      l2: 1e-5
+    bias_regularizer:
+      l2: 1e-5
     activation: "relu"
   -
     name: "Compass"
     class: Dense
     units: 1
+    kernel_regularizer:
+      l2: 1e-5
+    bias_regularizer:
+      l2: 1e-5
     activation: "linear"
 filters:
-  - "Conv"
+  - "Conv1"
+transform:
+  func: pca
+  reshape: "last"
+  load_filepath: "pca2.npz"
