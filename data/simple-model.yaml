@@ -1,5 +1,10 @@
 name: "simple-model"
 data_shape: (-1, 1, 6208, 2)
+optimizer: "rmsprop"
+loss: "mae"
+metrics:
+  - "accuracy"
+epochs: 200
 layers:
   -
     name: "SkyFeatures"
@@ -19,6 +24,8 @@ layers:
     name: "Hidden1"
     class: Dense
     units: 360
+    kernel_regularizer:
+      l2: 1e-5
     activation: "relu"
   -
     name: "Compass"
@@ -26,4 +33,8 @@ layers:
     units: 1
     activation: "linear"
 filters:
-  - "Conv"
+  - "Conv1"
+transform:
+  func: pca
+  reshape: "last"
+  load_filepath: "pca2.npz"
