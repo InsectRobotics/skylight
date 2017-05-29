@@ -10,7 +10,7 @@ from learn import CompassModel, from_file, angdist
 names = [
     # "seville-cr-32-20170321",
     "seville-cr-32-20170621",
-    # "seville-cr-32-20170921",
+    "seville-cr-32-20170921",
     "seville-cr-32-20171221",
     "seville-cr-32-20170601"
 ]
@@ -33,16 +33,16 @@ x_test = x_test.reshape((x_test.shape[0], -1, 2))
 x_test, y_test = x_test[i], y_test[i].squeeze()
 print "Test:", x_test.shape, y_test.shape
 
-model = from_file("simple-model.yaml")
+model = from_file("simple-cnn.yaml")
 model.summary()
 
 hist = model.train((x, y), valid_data=(x_test, y_test))
 
-p = np.deg2rad(model.predict(x))
+p = model.predict(x)
 acc = 1 - angdist(y, p).mean() / np.pi
 print "Train - Accuracy:", acc
 
-p_test = np.deg2rad(model.predict(x_test))
+p_test = model.predict(x_test)
 acc_test = 1 - angdist(y_test, p_test).mean() / np.pi
 print "Test  - Accuracy:", acc_test
 
@@ -52,7 +52,7 @@ plt.figure(1, figsize=(15, 20))
 plt.subplot(221)
 plt.plot(hist.history['loss'])
 plt.title("Training loss")
-plt.ylim([0, 1])
+plt.ylim([0, 15])
 
 plt.subplot(222)
 plt.plot(hist.history['acc'])
@@ -62,7 +62,7 @@ plt.ylim([0, 1])
 plt.subplot(223)
 plt.plot(hist.history['val_loss'])
 plt.title("Validation loss")
-plt.ylim([0, 1])
+plt.ylim([0, 15])
 
 plt.subplot(224)
 plt.plot(hist.history['val_acc'])

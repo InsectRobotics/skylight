@@ -1,10 +1,11 @@
-name: "simple-model"
+name: "simple-cnn"
 data_shape: (-1, 1, 6208, 2)
 optimizer: "nadam"
 loss: "mse"
 epochs: 200
 shuffle: True
-batch_size: 10000
+batch_size: 1000
+load_weights: True
 layers:
   -
     name: "SkyFeatures"

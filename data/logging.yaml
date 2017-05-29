@@ -30,7 +30,7 @@ loggers:
         handlers: [console]
         propagate: no
     learn.whitening:
-        level: DEBUG
+        level: INFO
         handlers: [console]
         propagate: no
 root:

@@ -32,8 +32,8 @@ class ResetStatesCallback(Callback):
 class CompassModel(Model):
 
     def __init__(self, inputs, outputs, data_shape=None, filters=None, name=None,
-                 transform=None, optimizer="rmsprop", loss="mae", metrics=["accuracy"],
-                 epochs=100, batch_size=360, shuffle=False, reset_state=None):
+                 transform=None, optimizer="rmsprop", loss="mae", metrics=[],
+                 epochs=100, batch_size=360, shuffle=False, reset_state=None, load_weights=False):
         super(CompassModel, self).__init__(inputs=inputs, outputs=outputs, name=name)
         if filters is not None:
             self.filters = filters
@@ -46,8 +46,8 @@ class CompassModel(Model):
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.reset_state = reset_state
-
-        print vars(self)
+        if load_weights:
+            self.load_weights(__data__ + "%s.h5" % self.name)
 
     def train(self, train_data, valid_data=None):
 
