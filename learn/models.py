@@ -90,7 +90,9 @@ class CompassModel(Model):
     def predict(self, x, **kwargs):
         if 'batch_size' not in kwargs.keys():
             kwargs['batch_size'] = self.batch_size
-        x = self.transform(x)
+        if self.transform is not None:
+            x = self.transform(x)
+        x = x.reshape(self.data_shape)
         return super(CompassModel, self).predict(x, **kwargs)
 
     @classmethod
