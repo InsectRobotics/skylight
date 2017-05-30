@@ -1,8 +1,8 @@
-name: "simple-dense"
-data_shape: (-1, 12416)
+name: "simple-cnn-1-1"
+data_shape: (-1, 1, 8, 2)
 optimizer: "nadam"
 loss: "mse"
-epochs: 200
+epochs: 500
 shuffle: True
 batch_size: 1000
 load_weights: False
@@ -10,7 +10,17 @@ layers:
   -
     name: "SkyFeatures"
     class: Input
-    shape: (12416,)
+    shape: (1, 8, 2)
+  -
+    name: "Conv1"
+    class: Conv2D
+    filters: 1
+    kernel_size: (1, 2)
+    data_format: "channels_first"
+    activation: "relu"
+  -
+    name: "Flatten1"
+    class: Flatten
   -
     name: "Hidden1"
     class: Dense
@@ -33,5 +43,5 @@ filters:
   - "Conv1"
 transform:
   func: pca
-  reshape: "last"
-  load_filepath: "pca2.npz"
+  reshape: "first"
+  load_filepath: "pca1_1.npz"

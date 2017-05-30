@@ -4,6 +4,7 @@ import yaml
 import os
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 __data__ = __dir__ + '/../data/'
+__params__ = __data__ + 'params/'
 
 # setup logger
 with open(__data__ + 'logging.yaml', 'rb') as config:
@@ -111,17 +112,16 @@ def transform(x, m=None, w=None, func=zca, epsilon=10e-5, reshape='first', load_
             w = func(x, shape, epsilon)
             if save_filepath is not None:
                 logger.debug('Saving weights matrix...')
-                np.savez_compressed(__data__ + save_filepath, w=w)
+                np.savez_compressed(__params__ + save_filepath, w=w)
         else:
             logger.debug('Loading weights matrix...')
-            w = np.load(__data__ + load_filepath)['w']
+            w = np.load(__params__ + load_filepath)['w']
 
     logger.debug('Applying whitening to x...')
 
     # whiten the input data
     shape = np.shape(x)
     x = np.reshape(x, (-1, np.shape(w)[0]))
-
 
     if m is None:
         m = np.mean(x, axis=0) if np.shape(x)[0] > 1 else np.zeros((1, np.shape(w)[0]))

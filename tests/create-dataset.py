@@ -2,12 +2,17 @@ from sky import ChromaticitySkyModel, get_seville_observer
 import ephem
 import numpy as np
 from datetime import datetime, timedelta
+import sys
+import os
+sys.path.append(os.path.abspath("../"))
+__dir__ = os.path.dirname(os.path.realpath(__file__))
+__data__ = __dir__ + "/../data/datasets/"
 
 
 # initialise observer in Seville on 21/06/2017
 sun = ephem.Sun()
 seville = get_seville_observer()
-date = datetime(2017, 3, 21, 0, 0, 0)
+date = datetime(2017, 11, 21, 0, 0, 0)
 seville.date = date
 
 # set time-limits on sunset and sunrise
@@ -20,7 +25,7 @@ x, y = [], []
 
 while cur <= end:
     seville.date = cur
-    sky = ChromaticitySkyModel(observer=seville, nside=32)
+    sky = ChromaticitySkyModel(observer=seville, nside=1)
 
     print "Date =", seville.date
     print "   A =",
@@ -42,5 +47,5 @@ while cur <= end:
 x = np.array(x)
 y = np.array(y)
 
-np.savez_compressed('seville-cr-%d-%s.npz' % (sky.nside, date.strftime("%Y%m%d")), x=x, y=y)
+np.savez_compressed(__data__ + 'seville-cr-%d-%s.npz' % (sky.nside, date.strftime("%Y%m%d")), x=x, y=y)
 print "X:", x.shape, "| Y:", y.shape

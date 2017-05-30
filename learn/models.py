@@ -9,6 +9,7 @@ from backend import *
 from learn.whitening import transform as trans, pca, zca
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 __data__ = __dir__ + "/../data/"
+__params__ = __data__ + "params/"
 __logs__ = __dir__ + "/../logs/"
 
 
@@ -47,10 +48,9 @@ class CompassModel(Model):
         self.shuffle = shuffle
         self.reset_state = reset_state
         if load_weights:
-            self.load_weights(__data__ + "%s.h5" % self.name)
+            self.load_weights(__params__ + "%s.h5" % self.name)
 
     def train(self, train_data, valid_data=None):
-
         # compile the model
         self.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
 
@@ -75,7 +75,7 @@ class CompassModel(Model):
             kwargs['validation_data'] = (x_test.reshape(self.data_shape), y_test)
 
         # set callbacks
-        kwargs['callbacks'] = [TensorBoard(log_dir=__logs__)]
+        kwargs['callbacks'] = [TensorBoard(log_dir=__logs__ + self.name)]
         if self.reset_state is not None:
             kwargs['callbacks'].append(ResetStatesCallback(self.reset_state))
 
@@ -83,7 +83,7 @@ class CompassModel(Model):
         hist = self.fit(x, y, **kwargs)
 
         # save the weights
-        self.save_weights(__data__ + "%s.h5" % self.name, overwrite=True)
+        self.save_weights(__params__ + "%s.h5" % self.name, overwrite=True)
 
         return hist
 
@@ -118,7 +118,7 @@ class CompassModel(Model):
                 x, y = [], []
                 for name in names:
                     print "Loading '%s.npz' ..." % name
-                    src = np.load(__dir__ + '/../data/%s.npz' % name)
+                    src = np.load(__data__ + 'datasets/%s.npz' % name)
                     x.append(src['x'])
                     y.append(src['y'])
                     reset_state.append(x[-1].shape[0] / 360)
@@ -204,7 +204,7 @@ def from_file(filename):
 
 
 def __load_config__(filename):
-    with open(__dir__ + "/../data/" + filename, 'r') as f:
+    with open(__data__ + "models/" + filename, 'r') as f:
         try:
             params = yaml.load(f)
         except yaml.YAMLError as exc:
