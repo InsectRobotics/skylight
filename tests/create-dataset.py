@@ -12,7 +12,7 @@ __data__ = __dir__ + "/../data/datasets/"
 # initialise observer in Seville on 21/06/2017
 sun = ephem.Sun()
 seville = get_seville_observer()
-date = datetime(2017, 11, 21, 0, 0, 0)
+date = datetime(2017, 4, 21, 0, 0, 0)
 seville.date = date
 
 # set time-limits on sunset and sunrise
@@ -25,7 +25,7 @@ x, y = [], []
 
 while cur <= end:
     seville.date = cur
-    sky = ChromaticitySkyModel(observer=seville, nside=1)
+    sky = ChromaticitySkyModel(observer=seville, nside=32)
 
     print "Date =", seville.date
     print "   A =",

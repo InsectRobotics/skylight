@@ -1,5 +1,5 @@
 name: "simple-cnn-16"
-data_shape: (-1, 1, 1568, 2)
+data_shape: (-1, 2, 1568, 2)
 optimizer: "nadam"
 loss: "mse"
 epochs: 500
@@ -10,7 +10,7 @@ layers:
   -
     name: "SkyFeatures"
     class: Input
-    shape: (1, 1568, 2)
+    shape: (2, 1568, 2)
   -
     name: "Conv1"
     class: Conv2D

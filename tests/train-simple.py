@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath("../"))
 from learn import CompassModel, from_file, angdist
 
 city = "seville"
-nside = 1  # 32
+nside = 4  # 32
 dates = [
     "20170121",
     "20170221",
@@ -14,18 +14,12 @@ dates = [
     "20170421",
     "20170521",
     "20170621",
-    "20170721",
-    "20170821",
-    "20170921",
-    "20171021",
-    "20171121",
-    "20171221",
-    "20170601"
+    "20171008"
 ]
 
 names = ["%s-cr-%d-%s" % (city, nside, date) for date in dates]
 
-model = from_file("simple-cnn-1.yaml")
+model = from_file("simple-cnn-%d.yaml" % nside)
 model.summary()
 
 # Load training data

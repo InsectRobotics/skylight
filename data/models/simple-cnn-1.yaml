@@ -43,5 +43,5 @@ filters:
   - "Conv1"
 transform:
   func: pca
-  reshape: "first"
-  load_filepath: "pca1_1.npz"
+  reshape: "last"
+  load_filepath: "pca2.npz"

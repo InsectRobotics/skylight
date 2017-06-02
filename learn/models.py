@@ -110,6 +110,8 @@ class CompassModel(Model):
         :return: x, y (, reset_state)
         """
         # BlackBody x_shape=(-1, 1, 104, 473)
+        if x_shape[0] != -1:
+            x_shape = (-1,) + x_shape
         pol = pol or x_shape[-1] == 2
         reset_state = []
         if isinstance(data, list) or isinstance(data, tuple):
@@ -117,10 +119,18 @@ class CompassModel(Model):
                 names = data
                 x, y = [], []
                 for name in names:
-                    print "Loading '%s.npz' ..." % name
+                    print "Loading '%s.npz' ..." % name,
                     src = np.load(__data__ + 'datasets/%s.npz' % name)
-                    x.append(src['x'])
-                    y.append(src['y'])
+                    x0 = src['x']
+                    if len(x_shape) == 4 and x_shape[1] > 1:
+                        x00 = []
+                        for i in xrange(x_shape[1]):
+                            x00.append(x0[i:x0.shape[0]-(x_shape[1]-i-1)])
+                        x0 = np.array(x00).swapaxes(0, 1)
+                    y0 = src['y'][(x_shape[1]-1):]
+                    print x0.shape, y0.shape
+                    x.append(x0)
+                    y.append(y0)
                     reset_state.append(x[-1].shape[0] / 360)
 
                 x = np.concatenate(tuple(x), axis=0)
@@ -202,7 +212,7 @@ def from_file(filename):
         params['data_shape'] = (-1,) + tuple(inp.get_shape().as_list())[1:]
     return CompassModel(inp, x, **params)
 
-
+Conv2D()
 def __load_config__(filename):
     with open(__data__ + "models/" + filename, 'r') as f:
         try:

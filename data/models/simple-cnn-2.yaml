@@ -1,0 +1,47 @@
+name: "simple-cnn-2"
+data_shape: (-1, 1, 28, 2)
+optimizer: "nadam"
+loss: "mse"
+epochs: 500
+shuffle: True
+batch_size: 1000
+load_weights: False
+layers:
+  -
+    name: "SkyFeatures"
+    class: Input
+    shape: (1, 28, 2)
+  -
+    name: "Conv1"
+    class: Conv2D
+    filters: 1
+    kernel_size: (1, 2)
+    data_format: "channels_first"
+    activation: "relu"
+  -
+    name: "Flatten1"
+    class: Flatten
+  -
+    name: "Hidden1"
+    class: Dense
+    units: 360
+    kernel_regularizer:
+      l2: 1e-5
+    bias_regularizer:
+      l2: 1e-5
+    activation: "relu"
+  -
+    name: "Compass"
+    class: Dense
+    units: 1
+    kernel_regularizer:
+      l2: 1e-5
+    bias_regularizer:
+      l2: 1e-5
+    activation: "linear"
+filters:
+  - "Conv1"
+transform:
+  func: pca
+  reshape: "last"
+  load_filepath: "pca2.npz"
