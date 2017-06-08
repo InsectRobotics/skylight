@@ -26,18 +26,18 @@ layers:
     class: Dense
     units: 360
     kernel_regularizer:
-      l2: 1e-5
+      l2: 1e-4
     bias_regularizer:
-      l2: 1e-5
+      l2: 1e-4
     activation: "relu"
   -
     name: "Compass"
     class: Dense
     units: 1
     kernel_regularizer:
-      l2: 1e-5
+      l2: 1e-4
     bias_regularizer:
-      l2: 1e-5
+      l2: 1e-4
     activation: "linear"
 filters:
   - "Conv1"

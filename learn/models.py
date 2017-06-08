@@ -96,7 +96,7 @@ class CompassModel(Model):
         return super(CompassModel, self).predict(x, **kwargs)
 
     @classmethod
-    def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), y_shape=(-1, 8),
+    def load_dataset(cls, data, x_shape=(-1, 1, 6208, 5), y_shape=(-1, 8), time="full",
                      pol=True, directionwise=False, ret_reset_state=False):
         """
         
@@ -122,12 +122,20 @@ class CompassModel(Model):
                     print "Loading '%s.npz' ..." % name,
                     src = np.load(__data__ + 'datasets/%s.npz' % name)
                     x0 = src['x']
+                    y0 = src['y'][(x_shape[1]-1):]
+                    if "full" in time:
+                        pass
+                    elif "morning" in time:
+                        y0 = y0[:(x0.shape[0]/2)]
+                        x0 = x0[:(x0.shape[0]/2)]
+                    elif "afternoon" in time:
+                        y0 = y0[(x0.shape[0]/2):]
+                        x0 = x0[(x0.shape[0]/2):]
                     if len(x_shape) == 4 and x_shape[1] > 1:
                         x00 = []
                         for i in xrange(x_shape[1]):
                             x00.append(x0[i:x0.shape[0]-(x_shape[1]-i-1)])
                         x0 = np.array(x00).swapaxes(0, 1)
-                    y0 = src['y'][(x_shape[1]-1):]
                     print x0.shape, y0.shape
                     x.append(x0)
                     y.append(y0)

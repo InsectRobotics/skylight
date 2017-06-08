@@ -24,11 +24,13 @@ class SkyModel(object):
                     [-0.0670,  0.3703]])
 
     def __init__(self, observer=None, turbidity=-1, gradation=-1, indicatrix=-1, sky_type=-1, nside=NSIDE):
-        self.sun = ephem.Sun()
+        self.__sun = ephem.Sun()
         self.obs = observer
         if observer is None:
             self.obs = ephem.city("Edinburgh")
             self.obs.date = datetime(2017, 6, 21, 10, 0, 0)
+        self.sun.compute(self.obs)
+        self.lon, self.lat = sun2lonlat(self.__sun)
 
         # atmospheric condition
         if 1 <= sky_type <= 15:
@@ -94,10 +96,10 @@ class SkyModel(object):
     def generate(self):
         # update the relevant sun position
         self.sun.compute(self.obs)
+        self.lon, self.lat = self.sun2lonlat()
 
         # calculate the angular distance between the sun and every point on the map
-        lon, lat = sun2lonlat(self.sun)
-        x, y, z = 0, np.rad2deg(lat), 180 + np.rad2deg(lon)
+        x, y, z = 0, np.rad2deg(self.lat), 180 + np.rad2deg(self.lon)
         self.theta_s, self.phi_s = hp.Rotator(rot=(z, y, x))(self.theta, self.phi)
         self.theta_s, self.phi_s = self.theta_s % np.pi, self.phi_s % (2 * np.pi)
 
@@ -105,8 +107,8 @@ class SkyModel(object):
         self.si = self._scattering_indicatrix(self.theta_s)
         self.lg = self._luminance_gradation(self.theta)
         F_theta = self._relative_luminance(self.theta_s, self.theta)
-        F_0 = self._relative_luminance(np.array([lat]), np.zeros(1))
-        self.L_z = self.zenith_luminance(self.turbidity, lat)  # zenith luminance (K cd/m^2)
+        F_0 = self._relative_luminance(np.array([self.lat]), np.zeros(1))
+        self.L_z = self.zenith_luminance(self.turbidity, self.lat)  # zenith luminance (K cd/m^2)
         self.L = self.L_z * F_theta / F_0  # K cd/m^2
         self.mask = self.L > 0
 
@@ -124,6 +126,18 @@ class SkyModel(object):
 
     def maximum_degree_of_polarisation(self, c1=.6, c2=4.):
         return np.exp(-(self.turbidity-c1)/c2)
+
+    @property
+    def sun(self):
+        return self.__sun
+
+    @sun.setter
+    def sun(self, value):
+        self.__sun = value
+        self.lon, self.lat = self.sun2lonlat()
+
+    def sun2lonlat(self, **kwargs):
+        return sun2lonlat(self.__sun, **kwargs)
 
     def _relative_luminance(self, x, z):
         """
@@ -307,6 +321,7 @@ class SkyModel(object):
     def rotate(cls, sky, angle):
         rot = hp.Rotator(rot=(angle, 0, 0))
         sky.theta, sky.phi = rot(sky.theta, sky.phi)
+        # sky.lon, sky.lat = rot(sky.lon, sky.lat)
         return sky
 
 
@@ -433,7 +448,7 @@ class ChromaticitySkyModel(SkyModel):
     def generate(self, show=False):
         super(ChromaticitySkyModel, self).generate()
 
-        lon, lat = sun2lonlat(self.sun)
+        lon, lat = self.sun2lonlat()
         F_theta = self._relative_luminance(self.theta_s, self.theta)
         F_0 = self._relative_luminance(np.array([lat]), np.zeros(1))
         self.C_x_z = self.zenith_x(self.turbidity, lat)  # zenith x
