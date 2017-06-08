@@ -212,7 +212,7 @@ def from_file(filename):
         params['data_shape'] = (-1,) + tuple(inp.get_shape().as_list())[1:]
     return CompassModel(inp, x, **params)
 
-Conv2D()
+
 def __load_config__(filename):
     with open(__data__ + "models/" + filename, 'r') as f:
         try:

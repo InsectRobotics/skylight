@@ -2,7 +2,7 @@ name: "simple-cnn-16"
 data_shape: (-1, 2, 1568, 2)
 optimizer: "nadam"
 loss: "mse"
-epochs: 500
+epochs: 200
 shuffle: True
 batch_size: 1000
 load_weights: False
@@ -14,7 +14,7 @@ layers:
   -
     name: "Conv1"
     class: Conv2D
-    filters: 1
+    filters: 2
     kernel_size: (1, 2)
     data_format: "channels_first"
     activation: "relu"

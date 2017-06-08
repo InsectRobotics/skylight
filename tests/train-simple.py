@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath("../"))
 from learn import CompassModel, from_file, angdist
 
 city = "seville"
-nside = 4  # 32
+nside = 16  # 32
 dates = [
     "20170121",
     "20170221",
