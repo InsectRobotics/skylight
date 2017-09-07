@@ -124,6 +124,28 @@ class SkyModel(object):
 
         self.is_generated = True
 
+    def get_features(self, theta, phi):
+        # update the relevant sun position
+        self.sun.compute(self.obs)
+        self.lon, self.lat = self.sun2lonlat()
+
+        # calculate the angular distance between the sun and every point on the map
+        x, y, z = 0, np.rad2deg(self.lat), 180 + np.rad2deg(self.lon)
+        theta_s, phi_s = hp.Rotator(rot=(z, y, x))(theta, phi)
+        theta_s, phi_s = theta_s % np.pi, phi_s % (2 * np.pi)
+
+        # calculate luminance of the sky
+        F_theta = self._relative_luminance(theta_s, theta)
+        F_0 = self._relative_luminance(np.array([self.lat]), np.zeros(1))
+        L_z = self.zenith_luminance(self.turbidity, self.lat)  # zenith luminance (K cd/m^2)
+        L = L_z * F_theta / F_0  # K cd/m^2
+
+        # calculate the polarisation features
+        DOP = self.maximum_degree_of_polarisation() * self._linear_polarisation(x=theta_s, z=theta)
+        AOP = (phi_s + np.pi / 2) % np.pi
+
+        return L / 25., DOP, AOP
+
     def maximum_degree_of_polarisation(self, c1=.6, c2=4.):
         return np.exp(-(self.turbidity-c1)/c2)
 
@@ -182,16 +204,20 @@ class SkyModel(object):
         # return 1. + c * (np.exp(d * x) - np.exp(d * np.pi / 2)) + e * np.square(np.cos(x))
         return 1. + c * np.exp(d * x) + e * np.square(np.cos(x))
 
-    def _linear_polarisation(self, c=np.pi/2):
+    def _linear_polarisation(self, x=None, z=None, c=np.pi/2):
+        if x is None:
+            x = self.theta_s
+        if z is None:
+            z = self.theta
         lon, lat = sun2lonlat(self.sun)
-        lp = degree_of_polarisation(self.theta_s, 1.)
-        i_prez = self._relative_luminance(self.theta_s, self.theta)
+        lp = degree_of_polarisation(x, 1.)
+        i_prez = self._relative_luminance(x, z)
         i_sun = self._relative_luminance(np.zeros(1), np.array([lat]))
         i_90 = self._relative_luminance(np.ones(1) * np.pi / 2, np.absolute(np.array([lat]) - np.pi / 2))
         i = np.zeros_like(lp)
         i[i_prez > 0] = (1./i_prez[i_prez > 0] - 1./i_sun) * (i_90 * i_sun) / (i_sun - i_90)
-        p = 1./c * lp * (self.theta * np.cos(self.theta) + (np.pi/2 - self.theta) * i)
-        return np.maximum(p, 0)
+        p = 1./c * lp * (z * np.cos(z) + (np.pi/2 - z) * i)
+        return np.clip(p, 0, 1)
 
     @classmethod
     def luminance_coefficients(cls, tau):

@@ -3,6 +3,10 @@ import ephem
 import yaml
 import os
 from sklearn.externals import joblib
+
+Width = 64
+Height = 64
+
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 with open(__dir__ + "/../colour/CIE-standard-parameters.yaml", 'r') as f:
     try:
@@ -59,7 +63,7 @@ def sky_clearness(Z, Dh, I, kapa=1.041):
     :param kapa: a constant equal to 1.041 for Z in radians
     :return: the sky's clearness noted as epsilon
     """
-    return ((Dh + I)/Dh + kapa * np.power(Z, 3))/(1 + kapa * np.power(Z, 3))
+    return ((Dh + I) / Dh + kapa * np.power(Z, 3)) / (1 + kapa * np.power(Z, 3))
 
 
 def sky_brightness(Dh, m, I_0):
@@ -178,7 +182,7 @@ def sun2lonlat(s, lonlat=False, show=False):
 
     if show:
         print('Sun:\tLon = %.2f\t Lat = %.2f\t Co-Lat = %.2f' % \
-                (np.rad2deg(lon), np.rad2deg(lat), np.rad2deg(colat)))
+              (np.rad2deg(lon), np.rad2deg(lat), np.rad2deg(colat)))
 
     if lonlat:  # return the longitude and the latitude in degrees
         return np.rad2deg(lon), np.rad2deg(lat)
@@ -190,7 +194,7 @@ def hard_sigmoid(x, s=10):
     return 1. / (1. + np.exp(-s * x))
 
 
-def rayleigh(x, sigma=np.pi/2):
+def rayleigh(x, sigma=np.pi / 2):
     """
     The Rayleigh distribution function. Input 'x' is non negative number and sigma is mode of the distribution.
     :param x: non negative random variable
@@ -215,3 +219,263 @@ def get_seville_observer():
     seville.lat = '37.392509'
     seville.lon = '-5.983877'
     return seville
+
+
+def sph2pix(sph, height=Height, width=Width):
+    """
+    Transforms the spherical coordinates to vertical and horizontal pixel
+    indecies.
+    :param sph:     the spherical coordinates (elevation, azimuth, radius)
+    :param height:  the height of the image
+    :param width:   the width of the image
+    """
+    theta, phi, rho = sph
+
+    theta = theta % np.pi
+    phi = phi % (2 * np.pi)
+
+    x = np.int32((height - 1) / 2. + np.cos(phi) * np.sin(theta) * (height - 1) / 2.)
+    y = np.int32((width - 1) / 2. + np.sin(phi) * np.sin(theta) * (width - 1) / 2.)
+
+    return np.array([x, y])
+
+
+def pix2sph(pix, height=Height, width=Width):
+    """
+    Transforms vertical and horizontal pixel indecies to spherical coordinates
+    (elevation, azimuth).
+    :param pix:     the vertical and horizontal pixel indecies
+    :param height:  the height of the image
+    :param width:   the width of the image
+    """
+    x, y = np.float32(pix)
+    h, w = np.float(height - 1), np.float32(width - 1)
+    theta = np.arcsin(np.sqrt(np.square(2. * x / w - 1.) + np.square(2. * y / h - 1.)))
+    theta[np.isnan(theta)] = np.pi / 2
+    phi = np.arctan2(2. * y / h - 1., 2. * x / w - 1.)
+    phi[np.isnan(phi)] = np.pi / 2
+    return np.array([theta, phi])
+
+
+def azi2pix(phi, width=Width):
+    """
+    Transforms an azimuth values to a horizontal pixel index.
+    :param phi:     azimuth
+    :param width:   the width of the image
+    """
+    return (width * ((np.pi - phi) % (2 * np.pi)) / (2 * np.pi)).astype(int)
+
+
+def pix2azi(pix, width=Width):
+    """
+    Transforms a horizontal pixel index to azimuth values.
+    :param pix:     the horizontal pixel index
+    :param width:   the width of the image
+    """
+    return (np.pi - 2 * np.pi * pix.astype(float) / width) % (2 * np.pi)
+
+
+def ele2pix(theta, height=Height):
+    """
+    Transforms an elevation values to vertical pixel index.
+    :param theta:   the elevation
+    :param height:  the height of the image
+    """
+    return height - (height * (eleadj(theta) + np.pi / 2) / np.pi).astype(int)
+
+
+def pix2ele(pix, height=Height):
+    """
+    Transforms a vertical pixel index to elevation value.
+    :param pix:     the vertical pixel index
+    :param height:  the height of the image
+    """
+    return (np.pi * (height - pix - 1).astype(float) / height) % (np.pi / 2)
+
+
+def ang2pix(angle, num_of_pixels=640):
+    """
+    Transforms an angle to a pixel index.
+    :param angle:           the input angle
+    :param num_of_pixels:   the maximum number of pixels
+    """
+    return (num_of_pixels * angle / np.pi)
+
+
+def pix2ang(pix, num_of_pixels=640):
+    """
+    Transforms a pixel index to an angle.
+    :param pix:             the pixel index
+    :param num_of_pixels:   the maximum number of pixels
+    """
+    return np.pi * pix.astype(float) / num_of_pixels
+
+
+def azirot(vec, phi):
+    """
+    Rotate a vector horizontally and clockwise.
+    :param vec: the 3D vector
+    :param phi: the azimuth of the rotation
+    """
+    Rz = np.asarray([
+        [np.cos(phi), -np.sin(phi), 0],
+        [np.sin(phi), np.cos(phi), 0],
+        [0, 0, 1]]
+    )
+
+    return Rz.dot(vec)
+
+
+def vec2sph(vec):
+    """
+    Transforms a cartessian vector to spherical coordinates.
+    :param vec:     the cartessian vector
+    :return theta:  elevation
+    :return phi:    azimuth
+    :return rho:    radius
+    """
+    rho = la.norm(vec, axis=-1)  # length of the radius
+
+    if vec.ndim == 1:
+        vec = vec[np.newaxis, ...]
+        if rho == 0:
+            rho = 1.
+    else:
+        rho = np.concatenate([rho[..., np.newaxis]] * vec.shape[1], axis=-1)
+        rho[rho == 0] = 1.
+    v = vec / rho  # normalised vector
+
+    phi = np.arctan2(v[:, 0], v[:, 1])  # azimuth
+    theta = np.pi / 2 - np.arccos(v[:, 2])  # elevation
+
+    theta, phi = sphadj(theta, phi)  # bound the spherical coordinates
+    return np.asarray([theta, phi, rho[:, -1]])
+
+
+def sph2vec(theta, phi, rho=1.):
+    """
+    Transforms the spherical coordinates to a cartesian 3D vector.
+    :param theta: elevation
+    :param phi:   azimuth
+    :param rho:   radius length
+    :return vec:    the cartessian vector
+    """
+
+    x = rho * (np.sin(phi) * np.cos(theta))[0]
+    y = rho * (np.cos(phi) * np.cos(theta))[0]
+    z = rho * np.sin(theta)[0]
+
+    return np.asarray([x, y, z])
+
+
+# conditions to restrict the angles to correct quadrants
+def eleadj(theta):
+    """
+    Adjusts the elevation in [-pi, pi]
+    :param theta:   the elevation
+    """
+    theta, _ = sphadj(theta=theta)
+    return theta
+
+
+def aziadj(phi):
+    """
+    Adjusts the azimuth in [-pi, pi].
+    :param phi: the azimuth
+    """
+    _, phi = sphadj(phi=phi)
+    return phi
+
+
+def sphadj(theta=None, phi=None,
+           theta_min=-np.pi / 2, theta_max=np.pi / 2,  # constrains
+           phi_min=-np.pi, phi_max=np.pi):
+    """
+    Adjusts the spherical coordinates using the given bounds.
+    :param theta:       the elevation
+    :param phi:         the azimuth
+    :param theta_min:   the elevation lower bound (default -pi/2)
+    :param theta_max:   the elevation upper bound (default pi/2)
+    :param phi_min:     the azimuth lower bound (default -pi)
+    :param phi_max:     the azimuth upper bound (default pi)
+    """
+
+    # change = np.any([theta < -np.pi / 2, theta > np.pi / 2], axis=0)
+    if theta is not None:
+        if (theta >= theta_max).all():
+            theta = np.pi - theta
+            if np.all(phi):
+                phi += np.pi
+        elif (theta < theta_min).all():
+            theta = -np.pi - theta
+            if np.all(phi):
+                phi += np.pi
+        elif (theta >= theta_max).any():
+            theta[theta >= theta_max] = np.pi - theta[theta >= theta_max]
+            if np.all(phi):
+                phi[theta >= theta_max] += np.pi
+        elif (theta < theta_min).any():
+            theta[theta < theta_min] = -np.pi - theta[theta < theta_min]
+            if np.all(phi):
+                phi[theta < theta_min] += np.pi
+
+    if phi is not None:
+        while (phi < phi_min).all():
+            phi += 2 * np.pi
+        while (phi >= phi_max).all():
+            phi -= 2 * np.pi
+        while (phi < phi_min).any():
+            phi[phi < phi_min] += 2 * np.pi
+        while (phi >= phi_max).any():
+            phi[phi >= phi_max] -= 2 * np.pi
+
+    return theta, phi
+
+
+def vel2per(x, y):
+    """
+    Convert velocities of the dataset to values in [-1,+1], which denote the
+    increasing/decreasing amount of velocity wrt the maximum velocity.
+    """
+
+    x3, y3 = x[..., -3:], y[..., 2:5]
+    x3[..., 2] = aziadj(x3[..., 2])
+    y3[..., 2] = aziadj(y3[..., 2])
+    max3, mix3 = x3.max(axis=(0, 1)), x3.min(axis=(0, 1))
+    may3, miy3 = y3.max(axis=0), y3.min(axis=0)
+
+    maxy = np.vstack([max3, -mix3, may3, -miy3]).max(axis=0)
+
+    x[..., -3:] = x3 / maxy
+    y[..., 2:5] = y3 / maxy
+
+    return x, y
+
+
+def vec2pol(vec, y=None):
+    """
+    Converts a vector to polar coordinates.
+    """
+    if y is None:
+        rho = np.sqrt(vec[..., 0:1] ** 2 + vec[..., 1:2] ** 2)
+        phi = np.arctan2(vec[..., 1:2], vec[..., 0:1])
+
+        return np.append(rho, phi, axis=-1)
+    else:
+        rho = np.sqrt(vec ** 2 + y ** 2)
+        phi = np.arctan2(vec, y)
+
+        return rho, phi
+
+
+def pol2vec(pol, phi=None):
+    """
+    Convert polar coordinates to vector.
+    """
+    if phi is None:
+        rho = pol[..., 0:1]
+        phi = pol[..., 1:2]
+
+        return rho * np.append(np.cos(phi), np.sin(phi), axis=-1)
+    else:
+        return pol * np.cos(phi), pol * np.sin(phi)

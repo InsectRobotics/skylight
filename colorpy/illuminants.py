@@ -96,7 +96,7 @@ import yaml
 # table of CIE Illuminant D65 spectrum.
 # data from: http://cvrl.ioo.ucl.ac.uk/database/data/cie/Illuminantd65.txt
 # massaged into this format.
-with open("/home/thor/projects/skylight/colorpy/data/Illuminant-D65.yaml", 'r') as f:
+with open("/home/balder/projects/skylight/colorpy/data/Illuminant-D65.yaml", 'r') as f:
     _Illuminant_D65_table = yaml.load(f)
 _Illuminant_D65 = None
 

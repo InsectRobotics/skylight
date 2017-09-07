@@ -139,7 +139,7 @@ DEFAULT_DISPLAY_INTENSITY = 1.624
 # table of 1931 CIE XYZ matching functions.
 # data from: http://cvrl.ioo.ucl.ac.uk/database/data/cmfs/ciexyz31_1.txt
 # massaged into this format.
-with open("/home/thor/projects/colorpy/colorpy/data/CIEXYZ-1931-table.yaml", 'r') as f:
+with open("/home/balder/projects/skylight/colorpy/data/CIEXYZ-1931-table.yaml", 'r') as f:
     _CIEXYZ_1931_table = yaml.load(f)
 
 # Public - default range of wavelengths in spectra (nm).
