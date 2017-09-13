@@ -82,15 +82,15 @@ def cubebox(sky, side):
     AOP = AOP.reshape((W, H))
 
     L_cube = np.zeros((W, H, 3))
-    L_cube[..., 0] = np.power(L, 1) + np.power(1. - L, 1) * .05  # deep sky blue * .53
-    L_cube[..., 1] = np.power(L, 1) + np.power(1. - L, 1) * .53  # deep sky blue * .81
-    L_cube[..., 2] = np.power(L, 1) + np.power(1. - L, 1) * .79  # deep sky blue * .92
+    L_cube[..., 0] = L + (1. - L) * .05  # deep sky blue * .53
+    L_cube[..., 1] = L + (1. - L) * .53  # deep sky blue * .81
+    L_cube[..., 2] = L + (1. - L) * .79  # deep sky blue * .92
     L_cube = np.clip(L_cube, 0, 1)
 
     DOP_cube = np.zeros((W, H, 3))
-    DOP_cube[..., 0] = np.power(DOP, 1) * .53 + np.power(1. - DOP, 1)
-    DOP_cube[..., 1] = np.power(DOP, 1) * .81 + np.power(1. - DOP, 1)
-    DOP_cube[..., 2] = np.power(DOP, 1) * 1.0 + np.power(1. - DOP, 1)
+    DOP_cube[..., 0] = DOP * .53 + (1. - DOP)
+    DOP_cube[..., 1] = DOP * .81 + (1. - DOP)
+    DOP_cube[..., 2] = DOP * 1.0 + (1. - DOP)
     DOP_cube = np.clip(DOP_cube, 0, 1)
 
     AOP_cube = AOP % np.pi
@@ -125,38 +125,43 @@ def skydome(sky):
 
 
 def plot_luminance(**kwargs):
-    plt.figure("Luminance", figsize=(6, 4.5))
-    plt.subplot(3, 4, 5)
+    plt.figure("Luminance", figsize=(6, 9))
+    ax = plt.subplot(2, 1, 1)
+    plt.imshow(kwargs["skydome"])
+    ax.set_anchor('W')
+    plt.xticks([])
+    plt.yticks([])
+    plt.subplot(6, 4, 17)
     plt.imshow(kwargs["left"])
     plt.text(32, 40, "left", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 6)
+    plt.subplot(6, 4, 18)
     plt.imshow(kwargs["front"])
     plt.text(32, 40, "front", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 7)
+    plt.subplot(6, 4, 19)
     plt.imshow(kwargs["right"])
     plt.text(32, 40, "right", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 8)
+    plt.subplot(6, 4, 20)
     plt.imshow(kwargs["back"])
     plt.text(32, 40, "back", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 2)
+    plt.subplot(6, 4, 14)
     plt.imshow(kwargs["top"])
     plt.text(32, 32, "top", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 10)
+    plt.subplot(6, 4, 22)
     plt.imshow(kwargs["bottom"])
     plt.text(32, 32, "bottom", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
@@ -166,38 +171,43 @@ def plot_luminance(**kwargs):
 
 
 def plot_DOP(**kwargs):
-    plt.figure("Degree of Polarisation", figsize=(6, 4.5))
-    plt.subplot(3, 4, 5)
+    plt.figure("Degree of Polarisation", figsize=(6, 9))
+    ax = plt.subplot(2, 1, 1)
+    plt.imshow(kwargs["skydome"])
+    ax.set_anchor('W')
+    plt.xticks([])
+    plt.yticks([])
+    plt.subplot(6, 4, 17)
     plt.imshow(kwargs["left"])
     plt.text(32, 40, "left", fontsize="16", fontweight="bold", color="black",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 6)
+    plt.subplot(6, 4, 18)
     plt.imshow(kwargs["front"])
     plt.text(32, 40, "front", fontsize="16", fontweight="bold", color="black",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 7)
+    plt.subplot(6, 4, 19)
     plt.imshow(kwargs["right"])
     plt.text(32, 40, "right", fontsize="16", fontweight="bold", color="black",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 8)
+    plt.subplot(6, 4, 20)
     plt.imshow(kwargs["back"])
     plt.text(32, 40, "back", fontsize="16", fontweight="bold", color="black",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 2)
+    plt.subplot(6, 4, 14)
     plt.imshow(kwargs["top"])
     plt.text(32, 32, "top", fontsize="16", fontweight="bold", color="black",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 10)
+    plt.subplot(6, 4, 22)
     plt.imshow(kwargs["bottom"])
     plt.text(32, 32, "bottom", fontsize="16", fontweight="bold", color="black",
              horizontalalignment="center", verticalalignment="center")
@@ -207,38 +217,43 @@ def plot_DOP(**kwargs):
 
 
 def plot_AOP(**kwargs):
-    plt.figure("Angle of Polarisation", figsize=(6, 4.5))
-    plt.subplot(3, 4, 5)
+    plt.figure("Angle of Polarisation", figsize=(6, 9))
+    ax = plt.subplot(2, 1, 1)
+    plt.imshow(kwargs["skydome"], vmin=0, vmax=np.pi, cmap="hsv")
+    ax.set_anchor('W')
+    plt.xticks([])
+    plt.yticks([])
+    plt.subplot(6, 4, 17)
     plt.imshow(kwargs["left"], vmin=0, vmax=np.pi, cmap="hsv")
     plt.text(32, 32, "left", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 6)
+    plt.subplot(6, 4, 18)
     plt.imshow(kwargs["front"], vmin=0, vmax=np.pi, cmap="hsv")
     plt.text(32, 32, "front", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 7)
+    plt.subplot(6, 4, 19)
     plt.imshow(kwargs["right"], vmin=0, vmax=np.pi, cmap="hsv")
     plt.text(32, 32, "right", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 8)
+    plt.subplot(6, 4, 20)
     plt.imshow(kwargs["back"], vmin=0, vmax=np.pi, cmap="hsv")
     plt.text(32, 32, "back", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 2)
+    plt.subplot(6, 4, 14)
     plt.imshow(kwargs["top"], vmin=0, vmax=np.pi, cmap="hsv")
     plt.text(32, 32, "top", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(3, 4, 10)
+    plt.subplot(6, 4, 22)
     plt.imshow(kwargs["bottom"], vmin=0, vmax=np.pi, cmap="hsv")
     plt.text(32, 32, "bottom", fontsize="16", fontweight="bold", color="white",
              horizontalalignment="center", verticalalignment="center")
@@ -323,13 +338,16 @@ if __name__ == '__main__':
         L_top, DOP_top, AOP_top = cubebox(sky, "top")
         L_bottom, DOP_bottom, AOP_bottom = cubebox(sky, "bottom")
 
-        # plot cubeboxes
-        plot_luminance(left=L_left, front=L_front, right=L_right, back=L_back, top=L_top, bottom=L_bottom)
-        plot_DOP(left=DOP_left, front=DOP_front, right=DOP_right, back=DOP_back, top=DOP_top, bottom=DOP_bottom)
-        plot_AOP(left=AOP_left, front=AOP_front, right=AOP_right, back=AOP_back, top=AOP_top, bottom=AOP_bottom)
-
+        # create skydome
         L, DOP, AOP = skydome(sky)
-        plot_skydome(L, DOP, AOP)
+
+        # plot cubeboxes
+        plot_luminance(skydome=L,
+                       left=L_left, front=L_front, right=L_right, back=L_back, top=L_top, bottom=L_bottom)
+        plot_DOP(skydome=DOP,
+                 left=DOP_left, front=DOP_front, right=DOP_right, back=DOP_back, top=DOP_top, bottom=DOP_bottom)
+        plot_AOP(skydome=AOP,
+                 left=AOP_left, front=AOP_front, right=AOP_right, back=AOP_back, top=AOP_top, bottom=AOP_bottom)
 
         plt.draw()
         plt.pause(.01)
