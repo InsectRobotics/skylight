@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.linalg as la
+from sky import SkyModel
 from utils import pix2sph, Width as W, Height as H
 
 
@@ -67,19 +68,23 @@ def cubebox_angles(side):
     return theta, phi
 
 
-def cubebox(sky, side):
+def cubebox(sky, side, rot=0, eye_model=None):
     theta, phi = cubebox_angles(side)
-    L, DOP, AOP = sky.get_features(theta, phi)
-    L = L.reshape((W, H))
+    if eye_model is not None:
+        view = eye_model(np.array([np.pi/2-theta, np.pi-phi]).T)
+        view.rotate(np.deg2rad(rot))
+        view.set_sky(sky)
+        L = view.L
+        DOP = view.DOP
+        AOP = view.AOP
+    else:
+        L, DOP, AOP = sky.get_features(theta, phi)
+        L /= np.sqrt(2)
+        L = ((1. - L[..., np.newaxis]).dot(np.array([[.05, .53, .79]])).T + L).T
+    L_cube = np.clip(L.reshape((W, H, 3)), 0., 1)
     DOP[np.isnan(DOP)] = -1
     DOP = DOP.reshape((W, H))
     AOP = AOP.reshape((W, H))
-
-    L_cube = np.zeros((W, H, 3))
-    L_cube[..., 0] = L + (1. - L) * .05  # deep sky blue * .53
-    L_cube[..., 1] = L + (1. - L) * .53  # deep sky blue * .81
-    L_cube[..., 2] = L + (1. - L) * .79  # deep sky blue * .92
-    L_cube = np.clip(L_cube, 0, 1)
 
     DOP_cube = np.zeros((W, H, 3))
     DOP_cube[..., 0] = DOP * .53 + (1. - DOP)
@@ -93,19 +98,25 @@ def cubebox(sky, side):
     return L_cube, DOP_cube, AOP_cube
 
 
-def skydome(sky):
+def skydome(sky, rot=0, eye_model=None):
     x, y = np.arange(W), np.arange(H)
     x, y = np.meshgrid(x, y)
     x, y = x.flatten(), y.flatten()
     theta, phi = pix2sph(np.array([x, y]), H, W)
-    sky_L, sky_DOP, sky_AOP = sky.get_features(theta, phi)
-    sky_L = np.clip(sky_L, 0, 1)
+    if eye_model is not None:
+        view = eye_model(np.array([np.pi/2-theta, np.pi-phi]).T)
+        view.rotate(np.deg2rad(rot))
+        view.set_sky(sky)
+        sky_L = view.L
+        sky_DOP = view.DOP
+        sky_AOP = view.AOP
+    else:
+        sky_L, sky_DOP, sky_AOP = sky.get_features(theta, phi)
+        sky_L = ((1. - sky_L[..., np.newaxis]).dot(np.array([[.05, .53, .79]])).T + sky_L).T
     sky_DOP = np.clip(sky_DOP, 0, 1)
 
     L = np.zeros((W, H, 3))
-    L[x, y, 0] = sky_L + (1. - sky_L) * .05
-    L[x, y, 1] = sky_L + (1. - sky_L) * .53
-    L[x, y, 2] = sky_L + (1. - sky_L) * .79
+    L[x, y] = np.clip(sky_L, 0., 1)
 
     DOP = np.zeros((W, H, 3))
     DOP[x, y, 0] = sky_DOP * .53 + (1. - sky_DOP)

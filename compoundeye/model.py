@@ -1,8 +1,9 @@
 import numpy as np
 from utils import get_microvilli_angle, load_beeeye
-from sky import ChromaticitySkyModel
+from sky import SkyModel, ChromaticitySkyModel
 
 SkyBlue = np.array([.05, .53, .79])[..., np.newaxis]
+# SkyBlue = np.array([1.0, 1.0, 1.0])[..., np.newaxis]
 
 
 class CompoundEye(object):
@@ -22,25 +23,22 @@ class CompoundEye(object):
             self._aop_filter, self._dop_filter = get_microvilli_angle(self.theta, self.phi)
         self._dop_filter[:] = 1.
 
-        # specify the polarisation angle for each channel in the microvilli
-        self._channel_filters = {
-            "r": np.sin,
-            "g": np.sin,
-            "b": np.cos
-        }
+        self._channel_filters = {}
+        self._update_filters()
 
         # the raw receptive information
         self._lum = np.zeros_like(self.theta)
         self._dop = np.ones_like(self._dop_filter)
         self._aop = np.zeros_like(self._aop_filter)
 
+        self.facing_direction = 0
+
     @property
     def L(self):
-        f_rgb = self.filter_rgb(self._aop)
-        lum = self._lum + SkyBlue * (1. - self._lum)
-        lum = lum * np.sqrt(np.square(1. - self._dop) + np.square(self._dop * f_rgb))
-
-        return np.clip(lum.T, 0, 1)
+        lum_rgb = np.array([
+            pf(cf(self._lum), self._aop, self._dop) for cf, pf in [self._channel_filters[c] for c in ['r', 'g', 'b']]
+        ]).T
+        return np.clip(lum_rgb, 0, 1)
 
     @property
     def DOP(self):
@@ -51,28 +49,137 @@ class CompoundEye(object):
         return self._aop
 
     def set_sky(self, sky):
-        self._lum, self._dop, self._aop = sky.get_features(np.pi/2-self.theta, np.pi-self.phi)
+        self._lum, self._dop, self._aop = sky.get_features(np.pi/2-self.theta, np.pi-self.phi+self.facing_direction)
+        self._lum /= np.sqrt(2)
+        self._dop[np.isnan(self._dop)] = 1.
 
-    def filter_rgb(self, aop):
-        f = []
-        for c in ['r', 'g', 'b']:
-            f.append(self.filter(aop, c))
-        return np.array(f)
+    def rotate(self, angle):
+        self.facing_direction -= angle
 
-    def filter(self, aop, colour="r"):
-        c = self._channel_filters
-        if colour in c.keys():
-            d = aop - self._aop_filter
-            z = np.sqrt(np.square(np.sin(d)) * 2 + np.square(np.cos(d)))
-            return np.absolute(c[colour](d) / z) * np.clip(self._dop_filter, 0, 1)
+    def _update_filters(self):
+
+        self._channel_filters = {
+            "r": [
+                WLFilter(WLFilter.RGB_WL[0], name="RedWLFilter"),
+                POLFilter(self._aop_filter + np.pi / 4, self._dop_filter, name="RedPOLFilter")
+            ],
+            "g": [
+                WLFilter(WLFilter.RGB_WL[1], name="GreenWLFilter"),
+                POLFilter(self._aop_filter + np.pi / 2, self._dop_filter, name="GreenPOLFilter")
+            ],
+            "b": [
+                WLFilter(WLFilter.RGB_WL[2], name="BlueWLFilter"),
+                POLFilter(self._aop_filter, self._dop_filter, name="BluePOLFilter")
+            ]
+        }
+
+
+class Filter(object):
+    __counter = 0
+
+    def __init__(self, name=None):
+        if name is not None:
+            self.name = name
         else:
-            raise AttributeError("CompoundEye.filter: Unsupported channel!")
+            Filter.__counter += 1
+            self.name = "Filter-%d" % Filter.__counter
+
+    def __call__(self, *args, **kwargs):
+        assert len(args) > 0, "Not enough arguments."
+        return args[0]
+
+
+class WLFilter(Filter):
+    Red_WL = 685.
+    Green_WL = 532.5
+    Blue_WL = 472.5
+    UV_WL = 300.
+    RGB_WL = np.array([Red_WL, Green_WL, Blue_WL])
+    UVGB_WL = np.array([UV_WL, Green_WL, Blue_WL])
+
+    def __init__(self, wl_max, wl_min=None, name=None):
+        super(WLFilter, self).__init__(name)
+        self.alpha, self.beta = self.__build_map()
+        if wl_min is not None:
+            wl_max = (wl_max + wl_min) / 2.
+        self.weight = self.wl2int(wl_max)
+
+    def __call__(self, *args, **kwargs):
+        i0 = super(WLFilter, self).__call__(*args, **kwargs)
+        i0 += self.weight * (1. - i0)
+        return np.clip(i0, 0., 1.)
+
+    def wl2int(self, wl):
+        return self.alpha / np.power(wl, 4) + self.beta
+
+    @classmethod
+    def __build_map(cls):
+        A = np.array([1 / np.power(cls.RGB_WL, 4), np.ones(3)]).T
+        W = np.linalg.pinv(A.T).T.dot(SkyBlue)
+        return W
+
+
+class POLFilter(Filter):
+
+    def __init__(self, angle, degree=1., name=None):
+        super(POLFilter, self).__init__(name)
+        self.angle = angle
+        self.degree = degree
+
+    def __call__(self, *args, **kwargs):  # TODO: not working properly
+        assert len(args) > 2, "Not enough arguments."
+        lum, aop, dop = args[:3]
+        if 'lum' in kwargs.keys():
+            lum = kwargs['lum']
+        if 'aop' in kwargs.keys():
+            aop = kwargs['aop']
+        if 'dop' in kwargs.keys():
+            dop = kwargs['dop']
+        # print self.name,
+
+        # create the light coordinates
+        d = aop - self.angle
+        E1 = np.array([
+            np.cos(d),
+            np.sin(d)
+        ]) * lum
+        E2 = np.array([
+            np.cos(d + np.pi/2),
+            np.sin(d + np.pi/2)
+        ]) * lum * (1. - dop)
+
+        # filter the separate coordinates
+        E1[1] *= (1. - self.degree)
+        E2[1] *= (1. - self.degree)
+
+        # the total intensity is the integration of the ellipse
+        E = np.array([np.sqrt(np.square(E1).sum(axis=0)), np.sqrt(np.square(E2).sum(axis=0))])
+        # print E[0].max(), E[1].max()
+        return np.sqrt(np.square(E).sum(axis=0))
+
+
+def sph2vec(theta, phi, rho=1.):
+    """
+    Transforms the spherical coordinates to a cartesian 3D vector.
+    :param theta: elevation
+    :param phi:   azimuth
+    :param rho:   radius length
+    :return vec:    the cartessian vector
+    """
+
+    y = rho * (np.sin(phi) * np.cos(theta))
+    x = rho * (np.cos(phi) * np.cos(theta))
+    z = rho * np.sin(theta)
+
+    return np.asarray([x, -y, -z])
 
 
 if __name__ == "__main__":
     from datetime import datetime
     from ephem import city
     import matplotlib.pyplot as plt
+
+    angle = 0
 
     # initialise sky
     obs = city("Edinburgh")
@@ -83,7 +190,9 @@ if __name__ == "__main__":
     # initialise ommatidia features
     ommatidia_left, ommatidia_right = load_beeeye()
     l_eye = CompoundEye(ommatidia_left)
+    l_eye.rotate(angle)
     r_eye = CompoundEye(ommatidia_right)
+    r_eye.rotate(angle)
     l_eye.set_sky(sky)
     r_eye.set_sky(sky)
 
@@ -91,7 +200,7 @@ if __name__ == "__main__":
     s, p = 20, 4
     # plot eye's structure
     if False:
-        plt.figure("Compound eyes - Structure", figsize=(15, 21))
+        plt.figure("Compound eyes - Structure", figsize=(8, 21))
 
         lum_r = l_eye._lum + (1. - l_eye._lum) * .05
         lum_g = l_eye._lum + (1. - l_eye._lum) * .53
@@ -168,7 +277,7 @@ if __name__ == "__main__":
         plt.yticks([-np.pi / 2, -np.pi / 3, -np.pi / 6, 0, np.pi / 6, np.pi / 3, np.pi / 2], [])
     # plot bee's view
     if True:
-        plt.figure("Compound eyes - Bee's view", figsize=(15, 21))
+        plt.figure("Compound eyes - Bee's view", figsize=(8, 21))
 
         plt.subplot(321)
         plt.title("Left")

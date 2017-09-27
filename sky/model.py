@@ -99,7 +99,7 @@ class SkyModel(object):
         self.lon, self.lat = self.sun2lonlat()
 
         # calculate the angular distance between the sun and every point on the map
-        x, y, z = 0, np.rad2deg(self.lat), 180 + np.rad2deg(self.lon)
+        x, y, z = 0, np.rad2deg(self.lat), -np.rad2deg(self.lon)
         self.theta_s, self.phi_s = hp.Rotator(rot=(z, y, x))(self.theta, self.phi)
         self.theta_s, self.phi_s = self.theta_s % np.pi, self.phi_s % (2 * np.pi)
 
@@ -130,7 +130,7 @@ class SkyModel(object):
         self.lon, self.lat = self.sun2lonlat()
 
         # calculate the angular distance between the sun and every point on the map
-        x, y, z = 0, np.rad2deg(self.lat), 180 + np.rad2deg(self.lon)
+        x, y, z = 0, np.rad2deg(self.lat), -np.rad2deg(self.lon)
         theta_s, phi_s = hp.Rotator(rot=(z, y, x))(theta, phi)
         theta_s, phi_s = theta_s % np.pi, phi_s % (2 * np.pi)
 
@@ -344,11 +344,15 @@ class SkyModel(object):
         return f
 
     @classmethod
-    def rotate(cls, sky, angle):
-        rot = hp.Rotator(rot=(angle, 0, 0))
-        sky.theta, sky.phi = rot(sky.theta, sky.phi)
+    def rotate_sky(cls, sky, angle):
+        sky.theta, sky.phi = cls.rotate(sky.theta, sky.phi, angle)
         # sky.lon, sky.lat = rot(sky.lon, sky.lat)
         return sky
+
+    @classmethod
+    def rotate(cls, theta, phi, angle):
+        return hp.Rotator(rot=(angle, 0, 0))(theta, phi)
+
 
 
 class BlackbodySkyModel(SkyModel):

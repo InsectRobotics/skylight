@@ -1,4 +1,5 @@
 from sky import ChromaticitySkyModel, get_seville_observer, cubebox, skydome
+from compoundeye import CompoundEye
 from datetime import datetime, timedelta
 from sys import argv
 from ephem import city, Sun
@@ -198,7 +199,7 @@ if __name__ == '__main__':
     except ValueError:
         mode = 0
 
-    cur = obs.next_rising(sun).datetime()
+    cur = obs.next_rising(sun).datetime() + delta
     end = obs.next_setting(sun).datetime()
     if cur > end:
         cur = obs.previous_rising(sun).datetime()
@@ -213,27 +214,28 @@ if __name__ == '__main__':
         sky = ChromaticitySkyModel(observer=obs, turbidity=tau, nside=nside)
         sky.generate()
 
-        # create cubebox parts
-        L_left, DOP_left, AOP_left = cubebox(sky, "left")
-        L_front, DOP_front, AOP_front = cubebox(sky, "front")
-        L_right, DOP_right, AOP_right = cubebox(sky, "right")
-        L_back, DOP_back, AOP_back = cubebox(sky, "back")
-        L_top, DOP_top, AOP_top = cubebox(sky, "top")
-        L_bottom, DOP_bottom, AOP_bottom = cubebox(sky, "bottom")
+        for r in xrange(0, 360, 90):
+            # create cubebox parts
+            L_left, DOP_left, AOP_left = cubebox(sky, "left", rot=r, eye_model=CompoundEye)
+            L_front, DOP_front, AOP_front = cubebox(sky, "front", rot=r, eye_model=CompoundEye)
+            L_right, DOP_right, AOP_right = cubebox(sky, "right", rot=r, eye_model=CompoundEye)
+            L_back, DOP_back, AOP_back = cubebox(sky, "back", rot=r, eye_model=CompoundEye)
+            L_top, DOP_top, AOP_top = cubebox(sky, "top", rot=r, eye_model=CompoundEye)
+            L_bottom, DOP_bottom, AOP_bottom = cubebox(sky, "bottom", rot=r, eye_model=CompoundEye)
 
-        # create skydome
-        L, DOP, AOP = skydome(sky)
+            # create skydome
+            L, DOP, AOP = skydome(sky, rot=r, eye_model=CompoundEye)
 
-        # plot cubeboxes
-        plot_luminance(skydome=L,
-                       left=L_left, front=L_front, right=L_right, back=L_back, top=L_top, bottom=L_bottom)
-        plot_DOP(skydome=DOP,
-                 left=DOP_left, front=DOP_front, right=DOP_right, back=DOP_back, top=DOP_top, bottom=DOP_bottom)
-        plot_AOP(skydome=AOP,
-                 left=AOP_left, front=AOP_front, right=AOP_right, back=AOP_back, top=AOP_top, bottom=AOP_bottom)
+            # plot cubeboxes
+            plot_luminance(skydome=L,
+                           left=L_left, front=L_front, right=L_right, back=L_back, top=L_top, bottom=L_bottom)
+            plot_DOP(skydome=DOP,
+                     left=DOP_left, front=DOP_front, right=DOP_right, back=DOP_back, top=DOP_top, bottom=DOP_bottom)
+            plot_AOP(skydome=AOP,
+                     left=AOP_left, front=AOP_front, right=AOP_right, back=AOP_back, top=AOP_top, bottom=AOP_bottom)
 
-        plt.draw()
-        plt.pause(.01)
+            plt.draw()
+            plt.pause(.01)
 
         # increase the current time
         cur = cur + delta

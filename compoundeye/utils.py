@@ -153,7 +153,7 @@ def get_microvilli_angle(epsilon, alpha):
     if (alpha > 0).sum() < (alpha < 0).sum():
         s *= (-1)
     phi = np.pi / 18
-    theta = np.pi/2-np.pi / 6
+    theta = np.pi / 6
 
     x = np.cos(epsilon) * np.cos(s * alpha)
     y = np.cos(epsilon) * np.sin(s * alpha)
