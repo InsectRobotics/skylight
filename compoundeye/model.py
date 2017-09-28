@@ -171,7 +171,7 @@ def sph2vec(theta, phi, rho=1.):
     x = rho * (np.cos(phi) * np.cos(theta))
     z = rho * np.sin(theta)
 
-    return np.asarray([x, -y, -z])
+    return np.asarray([x, -y, z])
 
 
 if __name__ == "__main__":
