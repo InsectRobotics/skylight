@@ -354,7 +354,6 @@ class SkyModel(object):
         return hp.Rotator(rot=(angle, 0, 0))(theta, phi)
 
 
-
 class BlackbodySkyModel(SkyModel):
     alpha_default = -132.1
     beta_default = 59.77

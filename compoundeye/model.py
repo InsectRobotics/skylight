@@ -22,6 +22,7 @@ class CompoundEye(object):
         else:
             self._aop_filter, self._dop_filter = get_microvilli_angle(self.theta, self.phi)
         self._dop_filter[:] = 1.
+        self._active_pol_filters = True
 
         self._channel_filters = {}
         self._update_filters()
@@ -32,6 +33,25 @@ class CompoundEye(object):
         self._aop = np.zeros_like(self._aop_filter)
 
         self.facing_direction = 0
+
+    def activate_pol_filters(self, value):
+        """
+
+        :param value:
+        :type value: bool
+        :return:
+        """
+        old_value = self._active_pol_filters
+        self._active_pol_filters = value
+        if value != old_value:
+            self._update_filters()
+
+    @property
+    def dop_filter(self):
+        if self._active_pol_filters:
+            return self._dop_filter
+        else:
+            return np.zeros_like(self._dop_filter)
 
     @property
     def L(self):
@@ -61,15 +81,15 @@ class CompoundEye(object):
         self._channel_filters = {
             "r": [
                 WLFilter(WLFilter.RGB_WL[0], name="RedWLFilter"),
-                POLFilter(self._aop_filter + np.pi / 4, self._dop_filter, name="RedPOLFilter")
+                POLFilter(self._aop_filter + np.pi / 4, self.dop_filter, name="RedPOLFilter")
             ],
             "g": [
                 WLFilter(WLFilter.RGB_WL[1], name="GreenWLFilter"),
-                POLFilter(self._aop_filter + np.pi / 2, self._dop_filter, name="GreenPOLFilter")
+                POLFilter(self._aop_filter + np.pi / 2, self.dop_filter, name="GreenPOLFilter")
             ],
             "b": [
                 WLFilter(WLFilter.RGB_WL[2], name="BlueWLFilter"),
-                POLFilter(self._aop_filter, self._dop_filter, name="BluePOLFilter")
+                POLFilter(self._aop_filter, self.dop_filter, name="BluePOLFilter")
             ]
         }
 
@@ -199,7 +219,7 @@ if __name__ == "__main__":
     # plot result
     s, p = 20, 4
     # plot eye's structure
-    if False:
+    if True:
         plt.figure("Compound eyes - Structure", figsize=(8, 21))
 
         lum_r = l_eye._lum + (1. - l_eye._lum) * .05

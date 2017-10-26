@@ -175,6 +175,16 @@ def get_microvilli_angle(epsilon, alpha):
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
+    if not os._exists(__data__ + "compoundeye/bee.npz"):
+        ommatidia = build_right_beeeye()
+        ommatidia_right = ommatidia.copy()
+        ommatidia_left = ommatidia.copy()
+        ommatidia_left[:, 1] *= (-1)
+
+        np.savez_compressed(__data__ + "compoundeye/bee.npz",
+                            ommatidia=[ommatidia_left, ommatidia_right],
+                            a_12=alpha_max_1_2, a_34=alpha_max_3_4)
+
     ommatidia_left, ommatidia_right = load_beeeye()
 
     aop, dop = get_microvilli_angle(ommatidia_right[:, 0], ommatidia_right[:, 1])
