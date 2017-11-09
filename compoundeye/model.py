@@ -8,7 +8,8 @@ SkyBlue = np.array([.05, .53, .79])[..., np.newaxis]
 
 class CompoundEye(object):
 
-    def __init__(self, ommatidia):
+    def __init__(self, ommatidia, central_microvili=(np.pi/6, np.pi/18), noise_factor=.1,
+                 activate_dop_sensitivity=False):
 
         # eye specifications (ommatidia topography)
         self.theta = ommatidia[:, 0]
@@ -18,10 +19,15 @@ class CompoundEye(object):
             self._aop_filter = ommatidia[:, 2]
         elif ommatidia.shape[1] > 2:
             self._aop_filter = ommatidia[:, 2]
-            _, self._dop_filter = get_microvilli_angle(self.theta, self.phi)
+            _, self._dop_filter = get_microvilli_angle(
+                self.theta, self.phi, theta=central_microvili[0], phi=central_microvili[1], n=noise_factor
+            )
         else:
-            self._aop_filter, self._dop_filter = get_microvilli_angle(self.theta, self.phi)
-        self._dop_filter[:] = 1.
+            self._aop_filter, self._dop_filter = get_microvilli_angle(
+                self.theta, self.phi, theta=central_microvili[0], phi=central_microvili[1], n=noise_factor
+            )
+        if not activate_dop_sensitivity:
+            self._dop_filter[:] = 1.
         self._active_pol_filters = True
 
         self._channel_filters = {}

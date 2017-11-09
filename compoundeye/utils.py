@@ -3,6 +3,7 @@ import numpy as np
 from scipy.interpolate import splev, splrep
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 __data__ = __dir__ + "/../data/"
+RNG = np.random.RandomState(2018)
 
 
 alpha_max_1_2 = np.deg2rad(np.array([
@@ -148,24 +149,42 @@ def load_beeeye():
     return beeeyes["ommatidia"]
 
 
-def get_microvilli_angle(epsilon, alpha):
+def get_microvilli_angle(epsilon, alpha, theta=np.pi/6, phi=np.pi/18, n=.1):
+    """
+    Returns the orientation of the microvilli associated to each ommatidium.
+
+    :param epsilon: elevation of ommatidia
+    :type epsilon: np.ndarray
+    :param alpha: azimuth of ommatidia
+    :type alpha: np.ndarray
+    :param theta: elevation shift of the centre
+    :type theta: float
+    :param phi: azimuth shift of the centre
+    :type phi: float:
+    :param n: noise of polarisation sensitivity
+    :type n: float
+    :return: the microvilli orientation and polarisation sensitivity
+    """
     s = 1.  # sign
     if (alpha > 0).sum() < (alpha < 0).sum():
         s *= (-1)
-    phi = np.pi / 18
-    theta = np.pi / 6
 
-    x = np.cos(epsilon) * np.cos(s * alpha)
-    y = np.cos(epsilon) * np.sin(s * alpha)
-    z = np.sin(epsilon)
-    xyz = np.array([x, y, z])
+    # transform spherical coordinates of the ommatidia to 3D vectors
+    xyz = np.array([
+        np.cos(epsilon) * np.cos(s * alpha),
+        np.cos(epsilon) * np.sin(s * alpha),
+        np.sin(epsilon)
+    ])
+
+    # shift the orientation of the vectors according to the parameters
     R_x = np.array([[1, 0, 0], [0, np.cos(phi), np.sin(phi)], [0, -np.sin(phi), np.cos(phi)]])
     R_y = np.array([[np.cos(theta), 0, -np.sin(theta)], [0, 1, 0], [np.sin(theta), 0, np.cos(theta)]])
     R_z = np.array([[np.cos(phi), -np.sin(phi), 0], [np.sin(phi), np.cos(phi), 0], [0, 0, 1]])
     xyz = R_y.dot(R_z.dot(xyz))
 
-    angle = s * np.arctan2(xyz[1], xyz[0])
-    noise = np.random.randn(angle.size) * np.square(xyz[2]) / 10.
+    # calculate the orientation of each of the microvilli
+    angle = s * np.arctan2(xyz[1], xyz[0])  # type: np.ndarray
+    noise = RNG.randn(angle.size) * np.square(xyz[2]) * np.maximum(n, 0.)
     dop = np.power(xyz[2], 4) + noise
     dop[xyz[2] < 0] = 0
     dop = dop > .5
