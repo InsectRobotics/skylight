@@ -361,9 +361,9 @@ def sph2vec(theta, phi, rho=1.):
     :return vec:    the cartessian vector
     """
 
-    x = rho * (np.sin(phi) * np.cos(theta))[0]
-    y = rho * (np.cos(phi) * np.cos(theta))[0]
-    z = rho * np.sin(theta)[0]
+    x = rho * (np.sin(phi) * np.cos(theta)).flatten()
+    y = rho * (np.cos(phi) * np.cos(theta)).flatten()
+    z = rho * np.sin(theta).flatten()
 
     return np.asarray([x, y, z])
 

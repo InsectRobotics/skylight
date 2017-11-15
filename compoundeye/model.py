@@ -61,10 +61,15 @@ class CompoundEye(object):
 
     @property
     def L(self):
-        lum_rgb = np.array([
-            pf(cf(self._lum), self._aop, self._dop) for cf, pf in [self._channel_filters[c] for c in ['r', 'g', 'b']]
+        ks = self._channel_filters.keys()
+        k = []
+        for kk in ['r', 'g', 'b', 'uv']:
+            if kk in ks:
+                k.append(kk)
+        lum_channels = np.array([
+            pf(cf(self._lum), self._aop, self._dop) for cf, pf in [self._channel_filters[c] for c in k]
         ]).T
-        return np.clip(lum_rgb, 0, 1)
+        return np.clip(lum_channels, 0, 1)
 
     @property
     def DOP(self):
@@ -85,17 +90,17 @@ class CompoundEye(object):
     def _update_filters(self):
 
         self._channel_filters = {
-            "r": [
-                WLFilter(WLFilter.RGB_WL[0], name="RedWLFilter"),
-                POLFilter(self._aop_filter + np.pi / 4, self.dop_filter, name="RedPOLFilter")
-            ],
             "g": [
-                WLFilter(WLFilter.RGB_WL[1], name="GreenWLFilter"),
-                POLFilter(self._aop_filter + np.pi / 2, self.dop_filter, name="GreenPOLFilter")
+                WLFilter(WLFilter.RGB_WL[0], name="GreenWLFilter"),
+                POLFilter(self._aop_filter + np.pi / 4, self.dop_filter, name="GreenPOLFilter")
             ],
             "b": [
-                WLFilter(WLFilter.RGB_WL[2], name="BlueWLFilter"),
-                POLFilter(self._aop_filter, self.dop_filter, name="BluePOLFilter")
+                WLFilter(WLFilter.RGB_WL[1], name="BlueWLFilter"),
+                POLFilter(self._aop_filter + np.pi / 2, self.dop_filter, name="BluePOLFilter")
+            ],
+            "uv": [
+                WLFilter(WLFilter.RGB_WL[2], name="UVWLFilter"),
+                POLFilter(self._aop_filter, self.dop_filter, name="UVPOLFilter")
             ]
         }
 
@@ -121,7 +126,7 @@ class WLFilter(Filter):
     Blue_WL = 472.5
     UV_WL = 300.
     RGB_WL = np.array([Red_WL, Green_WL, Blue_WL])
-    UVGB_WL = np.array([UV_WL, Green_WL, Blue_WL])
+    GBUV_WL = np.array([Green_WL, Blue_WL, UV_WL])
 
     def __init__(self, wl_max, wl_min=None, name=None):
         super(WLFilter, self).__init__(name)
