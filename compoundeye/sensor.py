@@ -3,9 +3,12 @@ import numpy.linalg as la
 import healpy as hp
 
 from model import CompoundEye
+from utils import pca_kernel
+from sky import ChromaticitySkyModel, sph2vec
 
 LENS_RADIUS = 1  # mm
 A_lens = np.pi * np.square(LENS_RADIUS)  # mm ** 2
+NB_EN = 8
 DEBUG = True
 
 
@@ -41,7 +44,9 @@ class CompassSensor(CompoundEye):
         self._channel_filters.pop("g")
         self._channel_filters.pop("b")
 
-        self.w = np.random.randn(thetas.size, 2)
+        self.w = np.random.randn(thetas.size, NB_EN)
+        self.w_whitening = np.eye(thetas.size)
+        self.m = np.zeros(thetas.size)
 
     @property
     def coverage(self):
@@ -60,58 +65,37 @@ class CompassSensor(CompoundEye):
         x_min = x.min()
         return (x - x_min) / (x_max - x_min)
 
-    def update_parameters(self, sky_model):
+    def update_parameters(self, x, t=None):
         """
 
-        :param sky_model:
-        :type sky_model: ChromaticitySkyModel
+        :param x:
+        :type x: np.ndarray, ChromaticitySkyModel
+        :param t:
+        :type t: np.ndarray
         :return:
         """
-        x = np.empty((0, self.L.size), dtype=np.float32)
-        t = np.empty((0, 2), dtype=np.float32)
-        r = self.facing_direction
-        for j in xrange(180):
-            self.rotate(np.deg2rad(2))
+        if isinstance(x, ChromaticitySkyModel):
+            sky_model = x  # type: ChromaticitySkyModel
+            x = np.empty((0, self.L.size), dtype=np.float32)
+            t = np.empty((0, NB_EN), dtype=np.float32)
+            r = self.facing_direction
+            for j in xrange(180):
+                self.rotate(np.deg2rad(2))
+                self.set_sky(sky_model)
+                lon = (sky_model.lon + self.facing_direction) % (2 * np.pi)
+                lat = sky_model.lat
+                x = np.vstack([x, self.L.flatten()])
+                t = np.vstack([t, encode_sun(lon, lat)])
+            self.facing_direction = r
             self.set_sky(sky_model)
-            lon = (sky_model.lon + self.facing_direction) % (2 * np.pi)
-            lat = sky_model.lat
-            x = np.vstack([x, self.L.flatten()])
-            t = np.vstack([t, np.array([lon, lat])])
-        self.facing_direction = r
-        self.set_sky(sky_model)
-        print x.shape, t.shape
-
-        # t = np.array([(sky_model.lon+self.facing_direction) % np.pi/2, sky_model.lat])[np.newaxis]
-        # print t
 
         # self.w = (1. - self.learning_rate) * self.w + self.learning_rate * la.pinv(x).dot(t)
-        self.w = la.pinv(x, 1e-01).dot(t)
-        y = self._fprop(x)
-        print np.sqrt(np.square(self._fprop(x) - t).sum(axis=1)).sum()
+        self.w_whitening = pca_kernel(x)
+        self.m = x.mean(axis=0)
+        if t is not None:
+            self.w = la.pinv(self._pprop(x), 1e-01).dot(t)
 
-        import matplotlib.pyplot as plt
-        plt.figure("prediction map")
-        plt.scatter(y[:, 0], y[:, 1], label="prediction")
-        plt.scatter(t[:, 0], t[:, 1], label="target")
-        for y0, t0 in zip(y, t):
-            plt.plot([y0[0], t0[0]], [y0[1], t0[1]], 'k-')
-        plt.xlabel("longitude")
-        plt.ylabel("latitude")
-        plt.legend()
-
-        plt.figure("data")
-        for j in xrange(x.shape[1]):
-            plt.subplot(10, x.shape[1] // 10, j+1)
-            plt.scatter(x[:, j-1], x[:, j], c=t[:, 0], s=1, marker='.', cmap="hsv")
-            plt.xlim([0, 1])
-            # plt.xlim([0, 2 * np.pi])
-            plt.ylim([0, 1])
-            plt.xticks([])
-            plt.yticks([])
-
-        plt.show()
-
-        return self._fprop(self.L)
+        return self._fprop(x)
 
     def __call__(self, *args, **kwargs):
         if isinstance(args[0], np.ndarray):
@@ -123,9 +107,15 @@ class CompassSensor(CompoundEye):
 
         return self._fprop(self.L)
 
+    def _pprop(self, x):
+        return (x.reshape((-1, self.nb_lenses)) - self.m).dot(self.w_whitening)
+
     def _fprop(self, x):
-        x = x.reshape((-1, self.nb_lenses))
-        return x.dot(self.w)
+        x = self._pprop(x)
+        y = []
+        for x0 in x.dot(self.w):
+            y.append(decode_sun(x0))
+        return np.array(y)
 
     def __angles_distribution(self, choice="complete_circles"):
 
@@ -362,11 +352,40 @@ class CompassSensor(CompoundEye):
         plt.show()
 
 
+def encode_sun(lon, lat):
+    return np.sin(np.linspace(0, 2 * np.pi, NB_EN, endpoint=False) + lon + np.pi / 2) * lat / (NB_EN / 2.)
+
+
+def decode_sun(x):
+    fund_freq = np.fft.fft(x)[1]
+    lon = -np.angle(np.conj(fund_freq))
+    lat = np.absolute(fund_freq)
+    return lon, lat
+
+
+def mse(y, t, theta=True, phi=True):
+    if theta:
+        thy = y[:, 1]
+        tht = t[:, 1]
+    else:
+        thy = np.zeros_like(y[:, 1])
+        tht = np.zeros_like(t[:, 1])
+    if phi:
+        phy = y[:, 0]
+        pht = t[:, 0]
+    else:
+        phy = np.zeros_like(y[:, 0])
+        pht = np.zeros_like(t[:, 0])
+    v1 = sph2vec(thy, phy)
+    v2 = sph2vec(tht, pht)
+    return np.rad2deg(np.arccos((v1 * v2).sum(axis=0)).mean())
+
+
 if __name__ == "__main__":
-    from sky import ChromaticitySkyModel, get_seville_observer
+    from sky import get_seville_observer
     from datetime import datetime
 
-    s = CompassSensor(nb_lenses=12, fov=np.pi/3)
+    s = CompassSensor(nb_lenses=60, fov=np.pi/3)
     p = np.zeros(hp.nside2npix(s.nside))
     i = hp.ang2pix(s.nside, s.theta, s.phi)
 
@@ -378,7 +397,10 @@ if __name__ == "__main__":
     sky = ChromaticitySkyModel(observer=observer, nside=1)
     sky.generate()
 
-    # print s.update_parameters(sky)
+    lon, lat = sky.lon, sky.lat
+    print "Reality: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
+    lon, lat = s.update_parameters(sky)
+    print "Prediction: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
     s.set_sky(sky)
     CompassSensor.visualise(s)
 

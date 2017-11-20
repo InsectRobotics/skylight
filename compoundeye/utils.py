@@ -191,6 +191,30 @@ def get_microvilli_angle(epsilon, alpha, theta=np.pi/6, phi=np.pi/18, n=.1):
     return angle + noise, np.clip(dop, 0, 1)
 
 
+def pca_kernel(x, epsilon=10e-5):
+    x_flat = x.reshape((x.shape[0], -1))
+    n, d = x_flat.shape
+    m = x_flat.mean(axis=0)
+
+    x_flat -= m
+    C = x_flat.T.dot(x_flat) / n
+    U, S, V = np.linalg.svd(C)
+
+    return np.diag(1. / np.sqrt(S + epsilon)).dot(U.T)
+
+
+def zca_kernel(x, epsilon=10e-5):
+    x_flat = x.reshape((x.shape[0], -1))
+    n, d = x_flat.shape
+    m = x_flat.mean(axis=0)
+
+    x_flat -= m
+    C = x_flat.T.dot(x_flat) / n
+    U, S, V = np.linalg.svd(C)
+
+    return U.dot(np.diag(1. / np.sqrt(S + epsilon))).dot(U.T)
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
