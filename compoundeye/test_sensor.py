@@ -20,8 +20,8 @@ if __name__ == "__main__":
     start_month = 6
     start_day = 21
     delta = timedelta(hours=1)
-    # mode = "monthly"
-    mode = "hourly"
+    mode = "monthly"
+    # mode = "hourly"
     # mode = 6
 
     name = "seville-F%03d-I%03d-O%03d-M%02d-D%04d" % (fov, nb_lenses, NB_EN, nb_months, delta.seconds)
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     x, t = data['x'], data['t']
     t = np.array([decode_sun(t0) for t0 in t])
     y = s.update_parameters(x=data['x'], t=data['t'])
-    mse(y, t)
+    s.save_weights()
 
     print "MSE:", mse(y, t)
     print "MSE-longitude:", mse(y, t, theta=False)
@@ -51,7 +51,8 @@ if __name__ == "__main__":
         plt.figure("Monthly", figsize=(15, 10))
         for j in xrange(12):
             i = np.array([True if date[0].month == j+1 and 8 <= date[0].hour <= 10 else False for ii, date in enumerate(dates)])
-            plt.subplot(3, 4, j + 1, polar=True)
+            ax = plt.subplot(3, 4, j + 1, polar=True)
+            ax.set_theta_zero_location("N")
             plt.scatter(
                 y[i][:S:step, 0],
                 np.rad2deg(y[i][:S:step, 1]), label="prediction")
@@ -68,7 +69,8 @@ if __name__ == "__main__":
         i = np.array([True if date[0].month == mode else False for ii, date in enumerate(dates)])
         hours = i.sum() / S
         for j in xrange(min(hours, 12)):
-            plt.subplot(3, 4, j + 1, polar=True)
+            ax = plt.subplot(3, 4, j + 1, polar=True)
+            ax.set_theta_zero_location("N")
             plt.scatter(
                 y[i][j*S:(j+1)*S:step, 0],
                 np.rad2deg(y[i][j*S:(j+1)*S:step, 1]), label="prediction")
@@ -146,8 +148,9 @@ if __name__ == "__main__":
 
     lon, lat = sky.lon, sky.lat
     print "Reality: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
-    lon, lat = s.update_parameters(x=data['x'], t=data['t'])[0]
+    s.update_parameters(x=data['x'], t=data['t'])[0]
+    s.facing_direction = 0
+    lon, lat = s(sky)
     print "Prediction: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
-    s.set_sky(sky)
     # CompassSensor.visualise(s)
 

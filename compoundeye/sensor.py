@@ -5,6 +5,12 @@ import healpy as hp
 from model import CompoundEye
 from utils import pca_kernel
 from sky import ChromaticitySkyModel, sph2vec
+from geometry import fibonacci_sphere, angles_distribution
+import os
+
+
+__dir__ = os.path.dirname(os.path.realpath(__file__)) + "/"
+__datadir__ = __dir__ + "../data/sensor/"
 
 LENS_RADIUS = 1  # mm
 A_lens = np.pi * np.square(LENS_RADIUS)  # mm ** 2
@@ -18,7 +24,13 @@ class CompassSensor(CompoundEye):
 
         self.nb_lenses = nb_lenses
         self.fov = fov
-        self.S_a = nb_lenses * A_lens  # the surface area of the sensor
+
+        # we assume that the lens is a hexagon
+        self.r_l = LENS_RADIUS
+        self.R_l = LENS_RADIUS * 2 / np.sqrt(3)
+        self.S_l = 3 * self.r_l * self.R_l
+        # an estimation of the dome area
+        self.S_a = nb_lenses * self.S_l  # the surface area of the sensor
         self.R_c = np.sqrt(self.S_a / (2 * np.pi * (1. - np.cos(fov / 2))))  # the radius of the curvature
         self.alpha = self.R_c * np.sin(fov / 2)
         self.height = self.R_c * (1. - np.cos(fov / 2))
@@ -35,11 +47,20 @@ class CompassSensor(CompoundEye):
             print "Sensor height (h):             %.2f mm" % self.height
             print "Surface coverage:              %.2f" % self.coverage
 
-        thetas, phis, self.nside = self.__angles_distribution()
-        ommatidia = np.array([thetas.flatten(), phis.flatten()]).T
+        try:
+            thetas, phis, fit = angles_distribution(nb_lenses, np.rad2deg(fov))
+        except ValueError:
+            thetas = np.empty(0, dtype=np.float32)
+            phis = np.empty(0, dtype=np.float32)
+            fit = False
+        if not fit or nb_lenses > 100:
+            thetas, phis = fibonacci_sphere(nb_lenses, np.rad2deg(fov))
 
-        super(CompassSensor, self).__init__(ommatidia, central_microvili=(0, 0), noise_factor=.0,
-                                            activate_dop_sensitivity=False)
+        super(CompassSensor, self).__init__(
+            ommatidia=np.array([thetas.flatten(), phis.flatten()]).T,
+            central_microvili=(0, 0),
+            noise_factor=.0,
+            activate_dop_sensitivity=False)
 
         self._channel_filters.pop("g")
         self._channel_filters.pop("b")
@@ -105,7 +126,7 @@ class CompassSensor(CompoundEye):
         else:
             raise AttributeError("Unknown attribute type: %s" % type(args[0]))
 
-        return self._fprop(self.L)
+        return self._fprop(self.L).flatten()
 
     def _pprop(self, x):
         return (x.reshape((-1, self.nb_lenses)) - self.m).dot(self.w_whitening)
@@ -117,72 +138,17 @@ class CompassSensor(CompoundEye):
             y.append(decode_sun(x0))
         return np.array(y)
 
-    def __angles_distribution(self, choice="complete_circles"):
+    def save_weights(self):
+        name = "sensor-L%03d-V%03d.npz" % (self.nb_lenses, np.rad2deg(self.fov))
+        np.savez_compressed(__datadir__ + name, w=self.w, w_whitening=self.w_whitening)
 
-        # the number of lenses required to cover a 360 deg surface
-        npix_required = int(np.ceil(self.nb_lenses / self.coverage))
-        # compute the parameters of the sphere
-        nside = 0
-        npix = hp.nside2npix(2 ** nside)
-        nb_slots_available = int(np.ceil(npix * self.coverage))
-        while self.nb_lenses > nb_slots_available:
-            nside += 1
-            npix = hp.nside2npix(2 ** nside)
-            theta, _ = hp.pix2ang(2 ** nside, np.arange(npix))
-            nb_slots_available = (theta < self.fov / 2).sum()
-        nside = 2 ** nside
-
-        def complete_circles():
-            iii = np.arange(nb_slots_available)
-            theta, phi = hp.pix2ang(nside, iii)
-            u_theta = np.sort(np.unique(theta))
-            nb_slots = np.zeros_like(u_theta, dtype=int)
-            for j, uth in enumerate(u_theta):
-                nb_slots[j] = (theta == uth).sum()
-
-            j = np.zeros(self.nb_lenses, dtype=int)
-            k = 0
-            if nb_slots.sum() == self.nb_lenses:
-                return iii
-            else:
-                x = []
-                start = 0
-                for jj, shift in enumerate(nb_slots / 2):
-                    shifts = np.append(np.arange(jj % 2, shift, 2), np.arange(jj % 2 + 1, shift, 2))
-                    for jjj in shifts:
-                        x.append([])
-                        x[-1].append(start + jjj)
-                        x[-1].append(start + shift + jjj)
-                    start += 2 * shift
-                x = np.append(np.array(x[0::2]), np.array(x[1::2])).flatten()
-                j[:] = x[:self.nb_lenses]
-            return j
-
-        choices = {
-            "centre": lambda: np.arange(nb_slots_available)[:self.nb_lenses],
-            "edge": lambda: np.arange(nb_slots_available)[::-1][:self.nb_lenses],
-            "uniform": lambda: np.random.permutation(nb_slots_available)[:self.nb_lenses],
-            "random": lambda: np.random.permutation(nb_slots_available)[:self.nb_lenses],
-            "complete_circles": complete_circles
-        }
-
-        # calculate the pixel indices
-        if choice in choices.keys():
-            ii = choices[choice]()
-        else:
-            ii = choices["uniform"]()
-        ii = np.sort(ii)
-        # get the longitude and co-latitude with respect to the zenith
-        theta, phi = hp.pix2ang(nside, ii)  # return longitude and co-latitude in radians
-
-        if DEBUG:
-            print ""
-            print "Number of lenses required (full sphere): %d" % npix_required
-            print "Number of lenses (full sphere):          %d" % npix
-            print "Slots available:                         %d" % nb_slots_available
-            print "NSIDE:                                   %d" % nside
-
-        return theta, phi, nside
+    def load_weights(self, filename=None):
+        if filename is None:
+            name = "sensor-L%03d-V%03d.npz" % (self.nb_lenses, np.rad2deg(self.fov))
+            filename = __datadir__ + name
+        weights = np.load(filename)
+        self.w = weights["w"]
+        self.w_whitening = weights["w_whitening"]
 
     @classmethod
     def visualise(cls, sensor):
@@ -206,8 +172,8 @@ class CompassSensor(CompoundEye):
                           width=2 * sensor.R_c,
                           height=2 * sensor.R_c)
         sensor_outline = Ellipse(xy=np.zeros(2),
-                                 width=2 * sensor.alpha + LENS_RADIUS,
-                                 height=2 * sensor.alpha + LENS_RADIUS)
+                                 width=2 * sensor.alpha + 2 * sensor.R_l,
+                                 height=2 * sensor.alpha + 2 * sensor.R_l)
         ax_t.add_artist(outline)
         outline.set_clip_box(ax_t.bbox)
         outline.set_alpha(.2)
@@ -218,7 +184,8 @@ class CompassSensor(CompoundEye):
         sensor_outline.set_facecolor("grey")
 
         for (x, y, z), th, ph, L in zip(xyz.T, sensor.theta, sensor.phi, sensor.L):
-            lens = Ellipse(xy=[x, y], width=LENS_RADIUS, height=np.cos(th) * LENS_RADIUS,
+
+            lens = Ellipse(xy=[x, y], width=1.5 * sensor.r_l, height=1.5 * np.cos(th) * sensor.r_l,
                            angle=np.rad2deg(-ph))
             ax_t.add_artist(lens)
             lens.set_clip_box(ax_t.bbox)
@@ -236,7 +203,7 @@ class CompassSensor(CompoundEye):
                           height=2 * sensor.R_c)
         fade_one = Rectangle(xy=[-sensor.R_c, -sensor.R_c],
                              width=2 * sensor.R_c,
-                             height=2 * sensor.R_c - sensor.height - LENS_RADIUS)
+                             height=2 * sensor.R_c - sensor.height - sensor.R_l)
         ax.add_artist(outline)
         outline.set_clip_box(ax.bbox)
         outline.set_alpha(.5)
@@ -248,7 +215,7 @@ class CompassSensor(CompoundEye):
         for (x, y, z), th, ph, L in zip(xyz.T, sensor.theta, sensor.phi, sensor.L):
             if y > 0:
                 continue
-            lens = Ellipse(xy=[x, z], width=LENS_RADIUS, height=np.sin(-y / sensor.R_c) * LENS_RADIUS,
+            lens = Ellipse(xy=[x, z], width=1.5 * sensor.r_l, height=np.sin(-y / sensor.R_c) * 1.5 * sensor.r_l,
                            angle=np.rad2deg(np.arcsin(-x / sensor.R_c)))
             ax.add_artist(lens)
             lens.set_clip_box(ax.bbox)
@@ -264,9 +231,9 @@ class CompassSensor(CompoundEye):
         outline = Ellipse(xy=np.zeros(2),
                           width=2 * sensor.R_c,
                           height=2 * sensor.R_c)
-        fade_one = Rectangle(xy=[-sensor.R_c, -sensor.R_c + sensor.height + LENS_RADIUS],
+        fade_one = Rectangle(xy=[-sensor.R_c, -sensor.R_c + sensor.height + sensor.R_l],
                              width=2 * sensor.R_c,
-                             height=2 * sensor.R_c - sensor.height - LENS_RADIUS)
+                             height=2 * sensor.R_c - sensor.height - sensor.R_l)
         ax.add_artist(outline)
         outline.set_clip_box(ax.bbox)
         outline.set_alpha(.5)
@@ -278,7 +245,7 @@ class CompassSensor(CompoundEye):
         for (x, y, z), th, ph, L in zip(xyz.T, sensor.theta, sensor.phi, sensor.L):
             if y < 0:
                 continue
-            lens = Ellipse(xy=[x, -z], width=LENS_RADIUS, height=np.sin(-y / sensor.R_c) * LENS_RADIUS,
+            lens = Ellipse(xy=[x, -z], width=1.5 * sensor.r_l, height=np.sin(-y / sensor.R_c) * 1.5 * sensor.r_l,
                            angle=np.rad2deg(np.arcsin(x / sensor.R_c)))
             ax.add_artist(lens)
             lens.set_clip_box(ax.bbox)
@@ -294,7 +261,7 @@ class CompassSensor(CompoundEye):
                           width=2 * sensor.R_c,
                           height=2 * sensor.R_c)
         fade_one = Rectangle(xy=[-sensor.R_c, -sensor.R_c],
-                             width=2 * sensor.R_c - sensor.height - LENS_RADIUS,
+                             width=2 * sensor.R_c - sensor.height - sensor.R_l,
                              height=2 * sensor.R_c)
         ax.add_artist(outline)
         outline.set_clip_box(ax.bbox)
@@ -307,7 +274,7 @@ class CompassSensor(CompoundEye):
         for (x, y, z), th, ph, L in zip(xyz.T, sensor.theta, sensor.phi, sensor.L):
             if x > 0:
                 continue
-            lens = Ellipse(xy=[z, y], width=LENS_RADIUS, height=np.sin(-x / sensor.R_c) * LENS_RADIUS,
+            lens = Ellipse(xy=[z, y], width=1.5 * sensor.r_l, height=np.sin(-x / sensor.R_c) * 1.5 * sensor.r_l,
                            angle=np.rad2deg(np.arcsin(y / sensor.R_c)) + 90)
             ax.add_artist(lens)
             lens.set_clip_box(ax.bbox)
@@ -323,8 +290,8 @@ class CompassSensor(CompoundEye):
         outline = Ellipse(xy=np.zeros(2),
                           width=2 * sensor.R_c,
                           height=2 * sensor.R_c)
-        fade_one = Rectangle(xy=[-sensor.R_c + sensor.height + LENS_RADIUS, -sensor.R_c],
-                             width=2 * sensor.R_c - sensor.height - LENS_RADIUS,
+        fade_one = Rectangle(xy=[-sensor.R_c + sensor.height + sensor.R_l, -sensor.R_c],
+                             width=2 * sensor.R_c - sensor.height - sensor.R_l,
                              height=2 * sensor.R_c)
         ax.add_artist(outline)
         outline.set_clip_box(ax.bbox)
@@ -337,7 +304,7 @@ class CompassSensor(CompoundEye):
         for (x, y, z), th, ph, L in zip(xyz.T, sensor.theta, sensor.phi, sensor.L):
             if x < 0:
                 continue
-            lens = Ellipse(xy=[-z, y], width=LENS_RADIUS, height=np.sin(-x / sensor.R_c) * LENS_RADIUS,
+            lens = Ellipse(xy=[-z, y], width=1.5 * sensor.r_l, height=np.sin(-x / sensor.R_c) * 1.5 * sensor.r_l,
                            angle=np.rad2deg(np.arcsin(-y / sensor.R_c)) - 90)
             ax.add_artist(lens)
             lens.set_clip_box(ax.bbox)
@@ -385,9 +352,8 @@ if __name__ == "__main__":
     from sky import get_seville_observer
     from datetime import datetime
 
-    s = CompassSensor(nb_lenses=60, fov=np.pi/3)
-    p = np.zeros(hp.nside2npix(s.nside))
-    i = hp.ang2pix(s.nside, s.theta, s.phi)
+    s = CompassSensor(nb_lenses=60, fov=np.deg2rad(60))
+    # s.load_weights()
 
     # default observer is in Seville (where the data come from)
     observer = get_seville_observer()
@@ -397,10 +363,10 @@ if __name__ == "__main__":
     sky = ChromaticitySkyModel(observer=observer, nside=1)
     sky.generate()
 
-    lon, lat = sky.lon, sky.lat
-    print "Reality: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
-    lon, lat = s.update_parameters(sky)
-    print "Prediction: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
+    # lon, lat = sky.lon, sky.lat
+    # print "Reality: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
+    # lon, lat = s.update_parameters(sky)
+    # print "Prediction: Lon = %.2f, Lat = %.2f" % (np.rad2deg(lon), np.rad2deg(lat))
     s.set_sky(sky)
     CompassSensor.visualise(s)
 
