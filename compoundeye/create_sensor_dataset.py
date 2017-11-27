@@ -11,8 +11,8 @@ __datadir__ = __dir__ + "../data/datasets/"
 if __name__ == "__main__":
 
     # parameters
-    nb_lenses = 4
-    fov = np.deg2rad(15)
+    nb_lenses = 100
+    fov = 60
     observer = get_seville_observer()
     nb_months = 7
     start_month = 6
@@ -23,10 +23,10 @@ if __name__ == "__main__":
     x = np.empty((0, nb_lenses), dtype=np.float32)
     t = np.empty((0, NB_EN), dtype=np.float32)
     m = np.empty((0, 1), dtype='datetime64[s]')
-    name = "seville-F%03d-I%03d-O%03d-M%02d-D%04d" % (np.rad2deg(fov), nb_lenses, NB_EN, nb_months, delta.seconds)
+    name = "seville-F%03d-I%03d-O%03d-M%02d-D%04d" % (fov, nb_lenses, NB_EN, nb_months, delta.seconds)
     print name
 
-    sensor = CompassSensor(nb_lenses=nb_lenses, fov=fov)
+    sensor = CompassSensor(nb_lenses=nb_lenses, fov=np.deg2rad(fov))
 
     months = (np.arange(start_month-1, start_month + nb_months - 1, 1) % 12) + 1
     for month in months:

@@ -22,7 +22,6 @@ def vec2sph(vec):
         rho = np.concatenate([rho[..., np.newaxis]] * vec.shape[1], axis=-1)
         rho[rho == 0] = 1.
     v = vec / rho  # normalised vector
-    print v.shape
 
     phi = np.arctan2(v[:, 0], v[:, 1])  # azimuth
     theta = np.arccos(v[:, 2])  # elevation
