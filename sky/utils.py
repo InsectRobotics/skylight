@@ -177,8 +177,7 @@ def sun2lonlat(s, lonlat=False, show=False):
     lon, lat = s.az, s.alt
     colat = np.pi / 2 - lat
 
-    if lon > np.pi:
-        lon -= 2 * np.pi
+    lon = (lon + np.pi) % (2 * np.pi) - np.pi
 
     if show:
         print('Sun:\tLon = %.2f\t Lat = %.2f\t Co-Lat = %.2f' % \
