@@ -1,4 +1,4 @@
-from sky import ChromaticitySkyModel, get_seville_observer
+from sky import SkyModel, get_seville_observer
 import ephem
 import numpy as np
 from datetime import datetime, timedelta
@@ -25,15 +25,15 @@ x, y = [], []
 
 while cur <= end:
     seville.date = cur
-    sky = ChromaticitySkyModel(observer=seville, nside=32)
+    sky = SkyModel(observer=seville, nside=32)
 
     print "Date =", seville.date
     print "   A =",
     for angle in xrange(360):
         # rotate the agent by 1 degree
-        sky = ChromaticitySkyModel.rotate(sky, 1)
+        sky = SkyModel.rotate(sky, 1)
         sky.generate()
-        x.append(ChromaticitySkyModel.generate_features(sky))
+        x.append(SkyModel.generate_features(sky))
         y.append(angle)
         print "%03d" % (angle + 1),
         if (angle + 1) % 15 == 0:

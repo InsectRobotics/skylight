@@ -61,7 +61,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import math, numpy
+import sphere, numpy
 
 import colormodels
 import ciexyz
@@ -287,12 +287,12 @@ def perceptually_uniform_spectral_colors (
     dss = numpy.empty ((num_colors, 1))
     for i in range (0, num_colors-1):
         dri = uniforms [i+1] - uniforms [i]
-        dsi = math.sqrt (numpy.dot (dri, dri))
+        dsi = sphere.sqrt (numpy.dot (dri, dri))
         dss [i] = dsi
         sum_ds += dsi
     # last point closes the curve
     dri = uniforms [0] - uniforms [num_colors - 1]
-    dsi = math.sqrt (numpy.dot (dri, dri))
+    dsi = sphere.sqrt (numpy.dot (dri, dri))
     dss [num_colors - 1] = dsi
     sum_ds += dsi
     # pick out subsamples as evenly spaced as possible
@@ -331,7 +331,7 @@ def perceptually_uniform_spectral_colors (
 def perceptually_uniform_spectral_color_plots ():
     brightness_list = [1.0, 0.9, 0.8, 0.75, 0.6, 0.5, 0.4, 0.3, 0.25]
     for brightness in brightness_list:
-        ibright = math.floor (100.0 * brightness + 0.5)
+        ibright = sphere.floor (100.0 * brightness + 0.5)
         plot_name  = 'PerceptuallyEqualColors_%d' % ibright
         plot_title = 'Perceptually (almost) Equally Spaced Pure Colors %d%%' % ibright
         table_name = 'percep_equal_names_%d.txt' % ibright

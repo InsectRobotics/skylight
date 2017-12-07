@@ -4,9 +4,13 @@ import matplotlib.pyplot as plt
 import ephem
 import os
 from datetime import datetime, timedelta
-from sky import BlackbodySkyModel, get_seville_observer, sun2lonlat
-from learn import CompassModel, angular_distance_deg, rad2compass
+from sky.model import BlackbodySkyModel
+from sky import get_seville_observer, sun2lonlat
+from learn import CompassModel, get_loss
+from code import decode_sph
 
+
+angular_distance_deg = get_loss("add")
 
 d = datetime(2017, 01, 21, 0, 0, 0)
 dir_img = "/home/thor/skylight/%s/" % d.strftime("%Y/%m/%d")

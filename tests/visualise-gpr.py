@@ -31,7 +31,7 @@ print "Test: ", x_test.shape, y_test.shape
 pca = PCA(n_components=1)
 print "Reducing dimensions..."
 pca.fit(x_test)
-# x_new = pca.transform(x)
+# x_new = pca.code(x)
 x_new_test = pca.transform(x_test)
 print "New test:", x_new_test.shape
 

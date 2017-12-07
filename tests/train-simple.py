@@ -1,9 +1,10 @@
 import numpy as np
 import sys
 import os
-sys.path.append(os.path.abspath("../"))
+from learn import CompassModel, from_file
+from sphere import angle_between
 
-from learn import CompassModel, from_file, angdist
+sys.path.append(os.path.abspath("../"))
 
 city = "seville"
 nside = 16  # 32
@@ -43,9 +44,9 @@ print "Test:", x_test.shape, y_test.shape
 hist = model.train((x, y), valid_data=(x_test, y_test))
 
 p = model.predict(x)
-acc = 1 - angdist(y.squeeze(), p.squeeze()).mean() / np.pi
+acc = 1 - angle_between(y.squeeze(), p.squeeze()).mean() / np.pi
 print "Train - Accuracy:", acc
 
 p_test = model.predict(x_test)
-acc_test = 1 - angdist(y_test.squeeze(), p_test.squeeze()).mean() / np.pi
+acc_test = 1 - angle_between(y_test.squeeze(), p_test.squeeze()).mean() / np.pi
 print "Test  - Accuracy:", acc_test

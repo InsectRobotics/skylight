@@ -1,5 +1,5 @@
 import numpy as np
-from sky import BlackbodySkyModel, ChromaticitySkyModel
+from sky.model import BlackbodySkyModel, ChromaticitySkyModel
 from colorpy.plots import spectrum_plot
 from colorpy.ciexyz import xyz_from_spectrum
 from colorpy.colormodels import rgb_from_xyz

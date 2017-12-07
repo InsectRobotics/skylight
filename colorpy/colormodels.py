@@ -245,7 +245,7 @@ along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from __future__ import print_function
 
-import math, numpy
+import sphere, numpy
 
 # The xyz constructors have some special versions to handle some common situations
 
@@ -514,7 +514,7 @@ L_LUM_CUTOFF = 0.008856
 def L_luminance (y):
     '''L coefficient for Luv and Lab models.'''
     if y > L_LUM_CUTOFF:
-        return L_LUM_A * math.pow (y, 1.0/3.0) - L_LUM_B
+        return L_LUM_A * sphere.pow (y, 1.0 / 3.0) - L_LUM_B
     else:
         # linear range
         return L_LUM_C * y
@@ -526,7 +526,7 @@ def L_luminance_inverse (L):
         y = L / L_LUM_C
     else:
         t = (L + L_LUM_B) / L_LUM_A
-        y = math.pow (t, 3)
+        y = sphere.pow (t, 3)
     return y
 
 # Utility function for Luv
@@ -574,7 +574,7 @@ LAB_F_B = (16.0/116.0)
 def Lab_f (t):
     '''Lab utility function.'''
     if t > L_LUM_CUTOFF:
-        return math.pow (t, 1.0/3.0)
+        return sphere.pow (t, 1.0 / 3.0)
     else:
         # linear range
         return LAB_F_A * t + LAB_F_B
@@ -585,7 +585,7 @@ def Lab_f_inverse (F):
         # linear range
         t = (F - LAB_F_B) / LAB_F_A
     else:
-        t = math.pow (F, 3)
+        t = sphere.pow (F, 3)
     return t
 
 # Conversions between standard device independent color space (CIE XYZ)
@@ -705,19 +705,19 @@ def simple_gamma_invert (x):
     if x <= 0.0:
         return x
     else:
-        return math.pow (x, 1.0 / gamma_exponent)
+        return sphere.pow (x, 1.0 / gamma_exponent)
 
 def simple_gamma_correct (x):
     '''Simple power law for gamma correction.'''
     if x <= 0.0:
         return x
     else:
-        return math.pow (x, gamma_exponent)
+        return sphere.pow (x, gamma_exponent)
 
 # sRGB gamma correction - http://www.color.org/sRGB.xalter
 # The effect of the equations is to closely fit a straightforward
 # gamma 2.2 curve with an slight offset to allow for invertability in
-# integer math. Therefore, we are maintaining consistency with the
+# integer sphere. Therefore, we are maintaining consistency with the
 # gamma 2.2 legacy images and the video industry.
 
 def srgb_gamma_invert (x):
@@ -725,7 +725,7 @@ def srgb_gamma_invert (x):
     if x <= 0.00304:
         rtn = 12.92 * x
     else:
-        rtn = 1.055 * math.pow (x, 1.0/2.4) - 0.055
+        rtn = 1.055 * sphere.pow (x, 1.0 / 2.4) - 0.055
     return rtn
 
 def srgb_gamma_correct (x):
@@ -733,7 +733,7 @@ def srgb_gamma_correct (x):
     if x <= 0.03928:
         rtn = x / 12.92
     else:
-        rtn = math.pow ((x + 0.055) / 1.055, 2.4)
+        rtn = sphere.pow ((x + 0.055) / 1.055, 2.4)
     return rtn
 
 def init_gamma_correction (

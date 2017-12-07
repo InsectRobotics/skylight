@@ -24,7 +24,7 @@ along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from __future__ import print_function
 
-import math
+import sphere
 import numpy
 import unittest
 
@@ -47,7 +47,7 @@ def blackbody_total_intensity (T_K, start_wl_nm, end_wl_nm):
 
 def blackbody_total_intensity_stefan_boltzman (T_K):
     '''Get the sum of the intensities over all wavelengths, assuming the Stefan-Boltzman law.'''
-    total = STEFAN_BOLTZMAN * math.pow (T_K, 4)
+    total = STEFAN_BOLTZMAN * sphere.pow (T_K, 4)
     # TODO - What (if any) scaling is required of this result to correspond to blackbody_specific_intensity()?
     # I am not sure, and there is a mismatch.
     # not entirely sure about the following scaling...  See Shu.
@@ -184,8 +184,8 @@ class TestBlackbody(unittest.TestCase):
             x_actual = xyz[0]
             y_actual = xyz[1]
             # Check against the tabulated result.
-            x_error = math.fabs(x_actual - x_expect)
-            y_error = math.fabs(y_actual - y_expect)
+            x_error = sphere.fabs(x_actual - x_expect)
+            y_error = sphere.fabs(y_actual - y_expect)
             # The tolerance used is larger than desired.
             # A tolerance of 5.0e-5 would match the precision in the book.
             tolerance = 15.0e-5

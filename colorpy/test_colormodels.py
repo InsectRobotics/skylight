@@ -24,7 +24,7 @@ along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from __future__ import print_function
 
-import math, random, numpy
+import sphere, random, numpy
 import unittest
 
 import colormodels
@@ -41,7 +41,7 @@ import ciexyz
 def calc_L_LUM_C ():
     '''L_LUM_C should be ideally chosen so that the two models in L_luminance() agree exactly at the cutoff point.
     This is where the extra digits in L_LUM_C, over Kasson, come from.'''
-    wanted = (colormodels.L_LUM_A * math.pow (colormodels.L_LUM_CUTOFF, 1.0/3.0) - colormodels.L_LUM_B) / colormodels.L_LUM_CUTOFF
+    wanted = (colormodels.L_LUM_A * sphere.pow (colormodels.L_LUM_CUTOFF, 1.0 / 3.0) - colormodels.L_LUM_B) / colormodels.L_LUM_CUTOFF
     print ('optimal L_LUM_C = %.16e' % (wanted))
 
 # Utility function for Lab.
@@ -52,7 +52,7 @@ def calc_L_LUM_C ():
 def calc_LAB_F_A ():
     '''LAB_F_A should be ideally chosen so that the two models in Lab_f() agree exactly at the cutoff point.
     This is where the extra digits in LAB_F_A, over Kasson, come from.'''
-    wanted = (math.pow (colormodels.L_LUM_CUTOFF, 1.0/3.0) - colormodels.LAB_F_B) / colormodels.L_LUM_CUTOFF
+    wanted = (sphere.pow (colormodels.L_LUM_CUTOFF, 1.0 / 3.0) - colormodels.LAB_F_B) / colormodels.L_LUM_CUTOFF
     print ('optimal LAB_F_A = %.16e' % (wanted))
 
 
@@ -81,9 +81,9 @@ class TestColormodels(unittest.TestCase):
         rgb1 = colormodels.rgb_from_xyz (xyz1)
         # Check errors.
         err_rgb = rgb1 - rgb0
-        error_rgb = math.sqrt (numpy.dot (err_rgb, err_rgb))
+        error_rgb = sphere.sqrt (numpy.dot (err_rgb, err_rgb))
         err_xyz = xyz1 - xyz0
-        error_xyz = math.sqrt (numpy.dot (err_xyz, err_xyz))
+        error_xyz = sphere.sqrt (numpy.dot (err_xyz, err_xyz))
         tolerance = 1.0e-10
         self.assertLess(error_xyz, tolerance)
         self.assertLess(error_rgb, tolerance)
@@ -144,9 +144,9 @@ class TestColormodels(unittest.TestCase):
         # (It actually seems to match exactly for me.)
         tolerance = 1.0e-14
         err_rgb = rgb1 - rgb0
-        err_r = math.fabs (err_rgb [0])
-        err_g = math.fabs (err_rgb [1])
-        err_b = math.fabs (err_rgb [2])
+        err_r = sphere.fabs (err_rgb [0])
+        err_g = sphere.fabs (err_rgb [1])
+        err_b = sphere.fabs (err_rgb [2])
         self.assertLessEqual(err_r, tolerance)
         self.assertLessEqual(err_g, tolerance)
         self.assertLessEqual(err_b, tolerance)
@@ -223,10 +223,10 @@ class TestColormodels(unittest.TestCase):
             y = colormodels.display_from_linear_component (a)
             b = colormodels.linear_from_display_component (y)
             # Check errors.
-            abs_err1 = math.fabs (y - x)
-            rel_err1 = math.fabs (abs_err1 / (y + x))
-            abs_err2 = math.fabs (b - a)
-            rel_err2 = math.fabs (abs_err2 / (b + a))
+            abs_err1 = sphere.fabs (y - x)
+            rel_err1 = sphere.fabs (abs_err1 / (y + x))
+            abs_err2 = sphere.fabs (b - a)
+            rel_err2 = sphere.fabs (abs_err2 / (b + a))
             msg1 = 'x = %g, y = %g, err = %g, rel = %g' % (x, y, abs_err1, rel_err1)
             msg2 = 'a = %g, b = %g, err = %g, rel = %g' % (a, b, abs_err2, rel_err2)
             if verbose:
@@ -270,9 +270,9 @@ class TestColormodels(unittest.TestCase):
         luv1 = colormodels.luv_from_xyz (xyz1)
         # Check errors.
         dluv = luv1 - luv0
-        error_luv = math.sqrt (numpy.dot (dluv, dluv))
+        error_luv = sphere.sqrt (numpy.dot (dluv, dluv))
         dxyz = xyz1 - xyz0
-        error_xyz = math.sqrt (numpy.dot (dxyz, dxyz))
+        error_xyz = sphere.sqrt (numpy.dot (dxyz, dxyz))
         self.assertLessEqual(error_luv, tolerance)
         self.assertLessEqual(error_xyz, tolerance)
         msg = 'xyz0: %s    luv0: %s    xyz1: %s    luv1: %s' % (
@@ -305,9 +305,9 @@ class TestColormodels(unittest.TestCase):
         lab1 = colormodels.lab_from_xyz (xyz1)
         # Check errors.
         dlab = lab1 - lab0
-        error_lab = math.sqrt (numpy.dot (dlab, dlab))
+        error_lab = sphere.sqrt (numpy.dot (dlab, dlab))
         dxyz = xyz1 - xyz0
-        error_xyz = math.sqrt (numpy.dot (dxyz, dxyz))
+        error_xyz = sphere.sqrt (numpy.dot (dxyz, dxyz))
         self.assertLessEqual(error_lab, tolerance)
         self.assertLessEqual(error_xyz, tolerance)
         msg = 'xyz0: %s    lab0: %s    xyz1: %s    lab1: %s' % (
@@ -336,7 +336,7 @@ class TestColormodels(unittest.TestCase):
         L0 = colormodels.L_luminance (y0)
         y1 = colormodels.L_luminance_inverse (L0)
         # Check error.
-        error = math.fabs (y1 - y0)
+        error = sphere.fabs (y1 - y0)
         tolerance = 1.0e-13
         self.assertLessEqual(error, tolerance)
         msg = 'y0: %g    L(y0): %g    y(L(y0)): %g    Error: %g' % (
@@ -349,7 +349,7 @@ class TestColormodels(unittest.TestCase):
         y0 = colormodels.L_luminance_inverse (L0)
         L1 = colormodels.L_luminance (y0)
         # Check error.
-        error = math.fabs (L1 - L0)
+        error = sphere.fabs (L1 - L0)
         tolerance = 1.0e-10
         self.assertLessEqual(error, tolerance)
         msg = 'L0: %g    y(L0): %g    L(y(L0)): %g    Error: %g' % (
@@ -396,7 +396,7 @@ class TestColormodels(unittest.TestCase):
         f0 = colormodels.Lab_f (t0)
         t1 = colormodels.Lab_f_inverse (f0)
         # Check error.
-        error = math.fabs (t1 - t0)
+        error = sphere.fabs (t1 - t0)
         tolerance = 1.0e-13
         self.assertLessEqual(error, tolerance)
         msg = 't0: %g    f(t0): %g    t(f(t0)): %g    Error: %g' % (
@@ -409,7 +409,7 @@ class TestColormodels(unittest.TestCase):
         t0 = colormodels.Lab_f_inverse (f0)
         f1 = colormodels.Lab_f (t0)
         # Check error.
-        error = math.fabs (f1 - f0)
+        error = sphere.fabs (f1 - f0)
         tolerance = 1.0e-10
         self.assertLessEqual(error, tolerance)
         msg = 'f0: %g    t(f0): %g    f(t(f0)): %g    Error: %g' % (
@@ -457,7 +457,7 @@ class TestColormodels(unittest.TestCase):
         xyz1 = colormodels.uv_primes_inverse (up0, vp0, xyz0[1])
         # Check error.
         dxyz = (xyz1 - xyz0)
-        error = math.sqrt (numpy.dot (dxyz, dxyz))
+        error = sphere.sqrt (numpy.dot (dxyz, dxyz))
         tolerance = 1.0e-13
         self.assertLessEqual(error, tolerance)
         msg = 'xyz0: %s    up: %g    vp: %g    xyz(up,vp): %s    Error: %g' % (

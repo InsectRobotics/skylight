@@ -1,8 +1,9 @@
 import numpy as np
 import healpy as hp
 import ephem
-from colorpy.illuminants import get_blackbody_illuminant
-from colorpy.rayleigh import rayleigh_illuminated_spectrum
+import matplotlib.pyplot as plt
+# from colorpy.illuminants import get_blackbody_illuminant
+# from colorpy.rayleigh import rayleigh_illuminated_spectrum
 # from colorpy.illuminants import
 from datetime import datetime
 from .utils import *
@@ -242,7 +243,6 @@ class SkyModel(object):
 
     @classmethod
     def plot_sun(cls, sky, fig=1, title="", mode=15, sub=(1, 4, 1), show=False):
-        import matplotlib.pyplot as plt
 
         assert (isinstance(mode, int) and 0 <= mode < 16) or isinstance(mode, basestring),\
             "Mode should be an integer between 0 and 15, or a string of the form 'bbbb' where b is for binary."
@@ -371,9 +371,9 @@ class BlackbodySkyModel(SkyModel):
 
         # calculate luminance of the sky
         self.T = self.colour_temperature(self.L * 1000.)
-        for i, t in enumerate(self.T[self.mask]):
-            b = rayleigh_illuminated_spectrum(get_blackbody_illuminant(t))
-            self.S[i, :] = b[:, 1]
+        # for i, t in enumerate(self.T[self.mask]):
+            # b = rayleigh_illuminated_spectrum(get_blackbody_illuminant(t))
+            # self.S[i, :] = b[:, 1]
         self.W[:] = b[:, 0]
 
         if show:

@@ -123,7 +123,7 @@ along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from __future__ import print_function
 
-import math
+import sphere
 import numpy, pylab
 
 import colormodels
@@ -139,13 +139,13 @@ def log_interpolate (y0, y1, num_values):
         raise ValueError('Invalid number of divisions %s in log_interpolate' % (str (num_values)))
     if num_values == 1:
         # can't use both endpoints, too constrained
-        yi = math.sqrt (y0 * y1)
+        yi = sphere.sqrt (y0 * y1)
         rtn.append (yi)
     else:
         # normal case
-        beta = math.log (y1 / y0) / float (num_values - 1)
+        beta = sphere.log (y1 / y0) / float (num_values - 1)
         for i in range (0, num_values):
-            yi = y0 * math.exp (beta * float (i))
+            yi = y0 * sphere.exp (beta * float (i))
             rtn.append (yi)
     return rtn
 
@@ -426,7 +426,7 @@ def scattered_visual_brightness ():
     (num_wl, num_cols) = spectrum_y.shape
     for i in range (0, num_wl):
         wl_nm = spectrum_y [i][0]
-        rayleigh = math.pow (550.0 / wl_nm, 4)
+        rayleigh = sphere.pow (550.0 / wl_nm, 4)
         xyz = ciexyz.xyz_from_wavelength (wl_nm)
         spectrum_y [i][1] = xyz [1] * rayleigh
     pylab.clf ()
@@ -462,7 +462,7 @@ def shark_fin_plot ():
     def get_direc_to_white (xyz):
         '''Get unit vector (xy plane) in direction of the white point.'''
         direc = white - xyz
-        mag = math.hypot (direc [0], direc [1])
+        mag = sphere.hypot (direc [0], direc [1])
         if mag != 0.0:
             direc /= mag
         return (direc[0], direc[1])

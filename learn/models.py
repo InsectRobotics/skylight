@@ -4,9 +4,8 @@ import os
 from keras.models import Model
 from keras.callbacks import Callback, TensorBoard
 from keras.layers import *
-from keras.regularizers import *
-from backend import *
-from learn.whitening import transform as trans, pca, zca
+from learn import transform as trans
+from code import encode_sph, decode_sph
 __dir__ = os.path.dirname(os.path.realpath(__file__))
 __data__ = __dir__ + "/../data/"
 __params__ = __data__ + "params/"
@@ -61,13 +60,13 @@ class CompassModel(Model):
             'shuffle': self.shuffle
         }
 
-        # set and transform training data
+        # set and code training data
         x, y = train_data
         if self.transform is not None:
             x = self.transform(x)
         x = x.reshape(self.data_shape)
 
-        # set and transform validation data
+        # set and code validation data
         if valid_data is not None:
             x_test, y_test = valid_data
             if self.transform is not None:
@@ -182,7 +181,7 @@ class CompassModel(Model):
             if y.shape[-1] == 8:
                 if y_shape[-1] == 8:
                     return y
-                y = np.rad2deg(compass2rad(y))
+                y = np.rad2deg(decode_sph(y))
             elif y.shape[-1] == 360:
                 if y_shape[-1] == 360:
                     return y
@@ -193,7 +192,7 @@ class CompassModel(Model):
                 raise AttributeError("Unknown output shape: %s" % str(y_shape))
 
         if y_shape[-1] == 8:
-            y = rad2compass(np.deg2rad(y))
+            y = encode_sph(np.deg2rad(y))
         elif y_shape[-1] == 360:
             y = np.eye(360)[y]
         else:
@@ -263,7 +262,7 @@ def __eval_dict__(param):
         elif 'regularizer' in k:
             r = param[k].keys()[-1]
             param[k] = __eval__(r)(param[k][r])
-        elif 'transform' in k:
+        elif 'code' in k:
             kwargs = param[k].copy()
             param[k] = lambda x: trans(x, **kwargs)
     return param

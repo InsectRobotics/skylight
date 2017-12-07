@@ -3,7 +3,7 @@ import ephem
 import yaml
 import os
 from sklearn.externals import joblib
-from utils import eleadj
+from sphere.transform import eleadj
 
 
 Width = 64

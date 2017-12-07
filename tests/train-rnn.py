@@ -1,4 +1,3 @@
-import numpy as np
 from learn import from_file
 import matplotlib.pyplot as plt
 

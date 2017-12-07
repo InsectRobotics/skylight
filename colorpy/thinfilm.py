@@ -82,7 +82,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import math, cmath, numpy
+import sphere, cmath, numpy
 
 import colormodels
 import ciexyz
@@ -111,12 +111,12 @@ class thin_film:
         self.R23 = field_reflection_coefficient (n2, n3)
         self.R12sqd_plus_R23sqd = self.R12*self.R12 + self.R23*self.R23
         self.R12_times_R23_times_2 = 2.0 * self.R12 * self.R23
-        self.phase_factor = -2.0 * self.thickness_nm * 2.0 * math.pi * n2
+        self.phase_factor = -2.0 * self.thickness_nm * 2.0 * sphere.pi * n2
 
         # aliasing will occur if the layer is too thick - see if this is true
         sample_interval_nm = 1.0      # assuming 1 nm
         wavelength_0_nm    = 380.0    # shortest wl results in minimum max_thickness
-        max_thickness_nm = 0.25 * math.pow (wavelength_0_nm, 2) / (n2 * sample_interval_nm)
+        max_thickness_nm = 0.25 * sphere.pow (wavelength_0_nm, 2) / (n2 * sample_interval_nm)
         if self.thickness_nm > max_thickness_nm:
             self.too_thick = True
 
@@ -130,7 +130,7 @@ class thin_film:
             return self.R12sqd_plus_R23sqd
 
         ## small-reflection approximation
-        #R = self.R12sqd_plus_R23sqd + self.R12_times_R23_times_2 * math.cos (self.phase_factor / wl_nm)
+        #R = self.R12sqd_plus_R23sqd + self.R12_times_R23_times_2 * sphere.cos (self.phase_factor / wl_nm)
         #return R
 
         # exact - accounts for multiple reflections, and does not assume a small

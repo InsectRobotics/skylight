@@ -116,7 +116,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 """
-import math, numpy
+import sphere, numpy
 import yaml
 
 import colormodels
@@ -139,7 +139,7 @@ DEFAULT_DISPLAY_INTENSITY = 1.624
 # table of 1931 CIE XYZ matching functions.
 # data from: http://cvrl.ioo.ucl.ac.uk/database/data/cmfs/ciexyz31_1.txt
 # massaged into this format.
-with open("/home/balder/projects/skylight/colorpy/data/CIEXYZ-1931-table.yaml", 'r') as f:
+with open("/home/thor/projects/skylight/colorpy/data/CIEXYZ-1931-table.yaml", 'r') as f:
     _CIEXYZ_1931_table = yaml.load(f)
 
 # Public - default range of wavelengths in spectra (nm).
@@ -233,7 +233,7 @@ def empty_spectrum():
 def xyz_from_wavelength(wl_nm):
     """Given a wavelength (nm), return the corresponding xyz color, for unit intensity."""
     # separate wl_nm into integer and fraction
-    int_wl_nm = math.floor(wl_nm)
+    int_wl_nm = sphere.floor(wl_nm)
     frac_wl_nm = wl_nm - float(int_wl_nm)
     # skip out of range (invisible) wavelengths
     if (int_wl_nm < start_wl_nm - 1) or (int_wl_nm > end_wl_nm + 1):
@@ -347,7 +347,7 @@ def get_normalized_spectral_line_colors_annotated(
         xyz = t * first_xyz + omt * last_xyz
         colormodels.xyz_normalize(xyz)
         xyzs[i] = xyz
-        name = '%03d purple' % math.floor(1000.0 * t + 0.5)
+        name = '%03d purple' % sphere.floor(1000.0 * t + 0.5)
         names.append(name)
         i += 1
     # scale each color to have the max rgb component equal to the desired brightness

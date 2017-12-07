@@ -1,4 +1,6 @@
-from learn import from_file, angdist, compass2rad2
+from learn import from_file
+# from sphere import angle_between
+# from code import encode_sph
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -33,8 +35,8 @@ hist = model.train((x_train, y_train), valid_data=(x_test, y_test),
 # e_train = model.evaluate(x_train, y_train)
 # e_test = model.evaluate(x_test, y_test)
 #
-# print "Training error:", 1. - angdist(compass2rad2(p_train), compass2rad2(y_train)).mean() / np.pi
-# print "Test error:", 1. - angdist(compass2rad2(p_test), compass2rad2(y_test)).mean() / np.pi
+# print "Training error:", 1. - angle_between(encode_sph(p_train), encode_sph(y_train)).mean() / np.pi
+# print "Test error:", 1. - angle_between(encode_sph(p_test), encode_sph(y_test)).mean() / np.pi
 
 # plot progress
 plt.figure(1, figsize=(15, 20))

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from learn import rad2compass
+# from code import decode_sph
 
 
 src = np.load('seville-bb-4-20170621.npz')

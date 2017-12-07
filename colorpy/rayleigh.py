@@ -62,7 +62,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import math
+import sphere
 import numpy, pylab
 
 import colormodels
@@ -77,7 +77,7 @@ def rayleigh_scattering (wl_nm):
     The scattering is scaled so that the factor for wl_nm = 555.0 is 1.0.'''
     wl_0_nm = 555.0
     wl_rel  = wl_nm / wl_0_nm
-    rayleigh_factor = math.pow (wl_rel, -4)
+    rayleigh_factor = sphere.pow (wl_rel, -4)
     return rayleigh_factor
 
 def rayleigh_scattering_spectrum ():

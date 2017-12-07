@@ -24,7 +24,7 @@ along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from __future__ import print_function
 
-import math
+import sphere
 import numpy
 import random
 import unittest
@@ -53,7 +53,7 @@ class TestRayleigh(unittest.TestCase):
             # Check.
             actual = r_sc / r4_wl
             expect = 1.0
-            error = math.fabs(actual - expect)
+            error = sphere.fabs(actual - expect)
             tolerance = 1.0e-12
             self.assertLessEqual(error, tolerance)
             msg = 'Wavelength: %g, %g    Scattering: %g, %g    Ratio of Powers: %.8f' % (

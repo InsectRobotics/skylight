@@ -67,7 +67,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with ColorPy.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import math
+import sphere
 import numpy
 import pylab
 
@@ -97,7 +97,7 @@ def blackbody_specific_intensity (wl_nm, T_K):
     if inv_exponent < 1.0 / 500.0:
         return 0.0
     exponent = 1.0 / inv_exponent
-    specific_intensity = b / (math.pow (wl_m, 5) * (math.exp (exponent) - 1.0))
+    specific_intensity = b / (sphere.pow (wl_m, 5) * (sphere.exp (exponent) - 1.0))
     return specific_intensity
 
 def blackbody_spectrum (T_K):
