@@ -3,6 +3,8 @@ import ephem
 import yaml
 import os
 from sklearn.externals import joblib
+from utils import eleadj
+
 
 Width = 64
 Height = 64
@@ -209,10 +211,6 @@ def degree_of_polarisation(x, h_max=.8):
     return h_max * np.square(np.sin(x)) / (1. + np.square(np.cos(x)))
 
 
-def rotation_matrix(theta):
-    return np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-
-
 def get_seville_observer():
     seville = ephem.Observer()
     seville.lat = '37.392509'
@@ -309,172 +307,3 @@ def pix2ang(pix, num_of_pixels=640):
     """
     return np.pi * pix.astype(float) / num_of_pixels
 
-
-def azirot(vec, phi):
-    """
-    Rotate a vector horizontally and clockwise.
-    :param vec: the 3D vector
-    :param phi: the azimuth of the rotation
-    """
-    Rz = np.asarray([
-        [np.cos(phi), -np.sin(phi), 0],
-        [np.sin(phi), np.cos(phi), 0],
-        [0, 0, 1]]
-    )
-
-    return Rz.dot(vec)
-
-
-def vec2sph(vec):
-    """
-    Transforms a cartessian vector to spherical coordinates.
-    :param vec:     the cartessian vector
-    :return theta:  elevation
-    :return phi:    azimuth
-    :return rho:    radius
-    """
-    rho = la.norm(vec, axis=-1)  # length of the radius
-
-    if vec.ndim == 1:
-        vec = vec[np.newaxis, ...]
-        if rho == 0:
-            rho = 1.
-    else:
-        rho = np.concatenate([rho[..., np.newaxis]] * vec.shape[1], axis=-1)
-        rho[rho == 0] = 1.
-    v = vec / rho  # normalised vector
-
-    phi = np.arctan2(v[:, 0], v[:, 1])  # azimuth
-    theta = np.pi / 2 - np.arccos(v[:, 2])  # elevation
-
-    theta, phi = sphadj(theta, phi)  # bound the spherical coordinates
-    return np.asarray([theta, phi, rho[:, -1]])
-
-
-def sph2vec(theta, phi, rho=1.):
-    """
-    Transforms the spherical coordinates to a cartesian 3D vector.
-    :param theta: elevation
-    :param phi:   azimuth
-    :param rho:   radius length
-    :return vec:    the cartessian vector
-    """
-
-    x = rho * (np.sin(phi) * np.cos(theta)).flatten()
-    y = rho * (np.cos(phi) * np.cos(theta)).flatten()
-    z = rho * np.sin(theta).flatten()
-
-    return np.asarray([x, y, z])
-
-
-# conditions to restrict the angles to correct quadrants
-def eleadj(theta):
-    """
-    Adjusts the elevation in [-pi, pi]
-    :param theta:   the elevation
-    """
-    theta, _ = sphadj(theta=theta)
-    return theta
-
-
-def aziadj(phi):
-    """
-    Adjusts the azimuth in [-pi, pi].
-    :param phi: the azimuth
-    """
-    _, phi = sphadj(phi=phi)
-    return phi
-
-
-def sphadj(theta=None, phi=None,
-           theta_min=-np.pi / 2, theta_max=np.pi / 2,  # constrains
-           phi_min=-np.pi, phi_max=np.pi):
-    """
-    Adjusts the spherical coordinates using the given bounds.
-    :param theta:       the elevation
-    :param phi:         the azimuth
-    :param theta_min:   the elevation lower bound (default -pi/2)
-    :param theta_max:   the elevation upper bound (default pi/2)
-    :param phi_min:     the azimuth lower bound (default -pi)
-    :param phi_max:     the azimuth upper bound (default pi)
-    """
-
-    # change = np.any([theta < -np.pi / 2, theta > np.pi / 2], axis=0)
-    if theta is not None:
-        if (theta >= theta_max).all():
-            theta = np.pi - theta
-            if np.all(phi):
-                phi += np.pi
-        elif (theta < theta_min).all():
-            theta = -np.pi - theta
-            if np.all(phi):
-                phi += np.pi
-        elif (theta >= theta_max).any():
-            theta[theta >= theta_max] = np.pi - theta[theta >= theta_max]
-            if np.all(phi):
-                phi[theta >= theta_max] += np.pi
-        elif (theta < theta_min).any():
-            theta[theta < theta_min] = -np.pi - theta[theta < theta_min]
-            if np.all(phi):
-                phi[theta < theta_min] += np.pi
-
-    if phi is not None:
-        while (phi < phi_min).all():
-            phi += 2 * np.pi
-        while (phi >= phi_max).all():
-            phi -= 2 * np.pi
-        while (phi < phi_min).any():
-            phi[phi < phi_min] += 2 * np.pi
-        while (phi >= phi_max).any():
-            phi[phi >= phi_max] -= 2 * np.pi
-
-    return theta, phi
-
-
-def vel2per(x, y):
-    """
-    Convert velocities of the dataset to values in [-1,+1], which denote the
-    increasing/decreasing amount of velocity wrt the maximum velocity.
-    """
-
-    x3, y3 = x[..., -3:], y[..., 2:5]
-    x3[..., 2] = aziadj(x3[..., 2])
-    y3[..., 2] = aziadj(y3[..., 2])
-    max3, mix3 = x3.max(axis=(0, 1)), x3.min(axis=(0, 1))
-    may3, miy3 = y3.max(axis=0), y3.min(axis=0)
-
-    maxy = np.vstack([max3, -mix3, may3, -miy3]).max(axis=0)
-
-    x[..., -3:] = x3 / maxy
-    y[..., 2:5] = y3 / maxy
-
-    return x, y
-
-
-def vec2pol(vec, y=None):
-    """
-    Converts a vector to polar coordinates.
-    """
-    if y is None:
-        rho = np.sqrt(vec[..., 0:1] ** 2 + vec[..., 1:2] ** 2)
-        phi = np.arctan2(vec[..., 1:2], vec[..., 0:1])
-
-        return np.append(rho, phi, axis=-1)
-    else:
-        rho = np.sqrt(vec ** 2 + y ** 2)
-        phi = np.arctan2(vec, y)
-
-        return rho, phi
-
-
-def pol2vec(pol, phi=None):
-    """
-    Convert polar coordinates to vector.
-    """
-    if phi is None:
-        rho = pol[..., 0:1]
-        phi = pol[..., 1:2]
-
-        return rho * np.append(np.cos(phi), np.sin(phi), axis=-1)
-    else:
-        return pol * np.cos(phi), pol * np.sin(phi)
