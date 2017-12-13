@@ -1,8 +1,8 @@
-from sky import ChromaticitySkyModel, get_seville_observer
+from sky import SkyModel, get_seville_observer
 from datetime import datetime, timedelta
 from sys import argv
 from ephem import city, Sun
-from sky import sph2pix, Width as W, Height as H
+from sky.utils import pix2sph, sph2pix, Width as W, Height as H
 import numpy as np
 import matplotlib.pyplot as plt
 plt.ion()
@@ -41,10 +41,10 @@ if __name__ == '__main__':
     except ValueError:
         mode = 0
 
-    cur = obs.next_rising(sun).datetime()
+    cur = obs.next_rising(sun).datetime() + delta
     end = obs.next_setting(sun).datetime()
     if cur > end:
-        cur = obs.previous_rising(sun).datetime()
+        cur = obs.previous_rising(sun).datetime() + delta
 
     print "Simulating..."
     print "City: %s" % city_name, "- Turbidity: %.2f" % tau
@@ -53,16 +53,22 @@ if __name__ == '__main__':
 
     while cur <= end:
         obs.date = cur
-        sky = ChromaticitySkyModel(observer=obs, turbidity=tau, nside=nside)
+        sky = SkyModel(observer=obs, turbidity=tau, nside=1)
+        x, y = np.arange(W), np.arange(H)
+        x, y = np.meshgrid(x, y)
+        x, y = x.flatten(), y.flatten()
+        pix = np.array([x, y])
+        theta, phi = pix2sph(pix, height=H, width=W)
+        j = np.all([~np.isnan(theta), ~np.isnan(phi)], axis=0)
+        x, y = x[j], y[j]
+        theta, phi = theta[j], phi[j]
+        sky.get_features(theta, phi)
+        sky = sky.rotate_sky(sky, yaw=90, pitch=60, roll=-60)
         sky.generate()
-
-        sph = np.stack([sky.theta, sky.phi, np.ones_like(sky.theta)])
-        x, y = sph2pix(sph, W, H)
 
         if mode == 0:
             sph = np.stack([sky.theta, sky.phi, np.ones_like(sky.theta)])
             image = np.zeros((W, H, 3))
-            x, y = sph2pix(sph, W, H)
             sky.DOP[np.isnan(sky.DOP)] = -1
             i = np.argsort(sky.DOP)
             # print sky.L.max()  # min(sky.L.max()) = 20, max(sky.L.max()) = 71
@@ -76,7 +82,7 @@ if __name__ == '__main__':
             plt.xticks([])
             plt.yticks([])
 
-            # ChromaticitySkyModel.plot_luminance(sky, fig=1, title="Luminance", mode="00100", sub=(1, 1, 1))
+            # SkyModel.plot_luminance(sky, fig=1, title="Luminance", mode="00100", sub=(1, 1, 1))
         elif mode == 1:
 
             sph = np.stack([sky.theta, sky.phi, np.ones_like(sky.theta)])
@@ -92,7 +98,7 @@ if __name__ == '__main__':
             plt.xticks([])
             plt.yticks([])
 
-            # ChromaticitySkyModel.plot_polarisation(sky, fig=1, title="", mode="10", sub=(1, 1, 1))
+            # SkyModel.plot_polarisation(sky, fig=1, title="", mode="10", sub=(1, 1, 1))
         elif mode == 2:
 
             image = np.zeros((W, H))
@@ -104,7 +110,7 @@ if __name__ == '__main__':
             plt.xticks([])
             plt.yticks([])
 
-            # ChromaticitySkyModel.plot_polarisation(sky, fig=1, title="", mode="01", sub=(1, 1, 1))
+            # SkyModel.plot_polarisation(sky, fig=1, title="", mode="01", sub=(1, 1, 1))
 
         plt.draw()
         plt.pause(.01)

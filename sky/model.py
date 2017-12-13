@@ -71,16 +71,11 @@ class SkyModel(object):
         # calculate the pixel indices
         i = np.arange(hp.nside2npix(nside))
         # get the longitude and co-latitude with respect to the zenith
-        self.theta, self.phi = hp.pix2ang(nside, i)  # return longitude and co-latitude in radians
+        self.__theta_z, self.__phi = hp.pix2ang(nside, i)  # return longitude and co-latitude in radians
         # we initialise the sun at the zenith
         # so the angular distance between the sun and every point is equal to their distance from the zenith
         self.theta_s, self.phi_s = self.theta.copy(), self.phi.copy()
 
-        # initialise the luminance features
-        self.L = np.zeros_like(self.theta)  # total luminance
-        self.L_z = self.zenith_luminance(self.turbidity)  # zenith luminance (K cd/m^2)
-        self.si = np.zeros_like(self.theta_s)  # scattering indicatrix
-        self.lg = np.zeros_like(self.theta)  # luminance gradation
         self.mask = None
 
         # initialise the electric field information
@@ -94,6 +89,109 @@ class SkyModel(object):
         self.nside = nside
         self.is_generated = False
 
+    def reset(self):
+
+        # initialise the luminance features
+        self.mask = None
+
+        # initialise the electric field information
+        self.E_par = np.zeros_like(self.L)  # the electric wave parallel to the polarisation axis
+        self.E_per = np.zeros_like(self.L)  # the electric wave perpendicular to the polarisation axis
+
+        # initialise the polarization features
+        self.DOP = np.zeros_like(self.theta)  # Degree of Polarisation
+        self.AOP = np.zeros_like(self.theta)  # Angle of Polarisation
+
+        self.is_generated = False
+
+    @property
+    def theta(self):
+        return self.__theta_z
+
+    @theta.setter
+    def theta(self, value):
+        if self.theta.size != value.size or not np.all(np.isclose(self.__theta_z, value)):
+            self.__theta_z = value
+            self.theta_s = value.copy()
+            self.reset()
+
+    @property
+    def phi(self):
+        return self.__phi
+
+    @phi.setter
+    def phi(self, value):
+        if self.__phi.size != value.size or not np.all(np.isclose(self.__phi, value)):
+            self.__phi = value
+            self.phi_s = value.copy()
+            self.reset()
+
+    @property
+    def luminance_gradation(self):
+        """
+        The luminance gradation function relates the luminance of a sky element to its zenith angle.
+        :return:  the observed luminance gradation (Cd/m^2) at the given element(s) -- [0, 1] for default parameters
+        """
+        z = self.theta  # angular distance between the observed element and the zenith point -- [0, pi/2]
+        a, b = self.A, self.B
+        phi = np.zeros_like(z)
+        # apply border conditions to avoid dividing with zero
+        z_p = np.all([z >= 0, z < np.pi / 2], axis=0)
+        phi[z_p] = 1. + a * np.exp(b / np.cos(z[z_p]))
+        phi[np.isclose(z, np.pi/2)] = 1.
+        return phi
+
+    @property
+    def scattering_indicatrix(self):
+        """
+        The scattering indicatrix which relates the relative luminance of the sky element
+        to its angular distance from the sun.
+        :return:  the observed scattering indicatrix at the given element(s) -- [0, inf) for default parameters
+        """
+        chi = self.theta_s  # angular distance between the observed element and the sun location -- [0, pi]
+        c, d, e = self.C, self.D, self.E
+        # return 1. + c * (np.exp(d * x) - np.exp(d * np.pi / 2)) + e * np.square(np.cos(x))
+        return 1. + c * np.exp(d * chi) + e * np.square(np.cos(chi))
+
+    @property
+    def relative_luminance(self):
+        """
+        Combines the scattering indicatrix and luminance gradation functions to compute the total luminance observed at
+        the given sky element(s).
+        :return:  the total observed luminance (Cd/m^2) at the given element(s)
+        """
+        phi = self.luminance_gradation
+        f = self.scattering_indicatrix
+        return f * phi
+
+    @property
+    def L_z(self):
+        """
+        :return: the zenith luminance (K cd/m^2)
+        """
+        return self.zenith_luminance(self.turbidity, self.lat)
+
+    @property
+    def L(self):
+        # calculate luminance of the sky
+        chi = self.lat
+        F_theta = self.relative_luminance
+        F_0 = (1. + self.A * np.exp(self.B)) * (1. + self.C * np.exp(self.D * chi) + self.E * np.square(np.cos(chi)))
+
+        L = self.L_z * F_theta / F_0  # K cd/m^2
+        self.mask = L > 0
+        return L
+
+    @property
+    def sun(self):
+        return self.__sun
+
+    @sun.setter
+    def sun(self, value):
+        self.__sun = value
+        self.lon, self.lat = self.sun2lonlat()
+        self.is_generated = False
+
     def generate(self):
         # update the relevant sun position
         self.sun.compute(self.obs)
@@ -102,19 +200,10 @@ class SkyModel(object):
         # calculate the angular distance between the sun and every point on the map
         x, y, z = 0, np.rad2deg(self.lat), -np.rad2deg(self.lon)
         self.theta_s, self.phi_s = hp.Rotator(rot=(z, y, x))(self.theta, self.phi)
-        self.theta_s, self.phi_s = self.theta_s % np.pi, self.phi_s % (2 * np.pi)
-
-        # calculate luminance of the sky
-        self.si = self._scattering_indicatrix(self.theta_s)
-        self.lg = self._luminance_gradation(self.theta)
-        F_theta = self._relative_luminance(self.theta_s, self.theta)
-        F_0 = self._relative_luminance(np.array([self.lat]), np.zeros(1))
-        self.L_z = self.zenith_luminance(self.turbidity, self.lat)  # zenith luminance (K cd/m^2)
-        self.L = self.L_z * F_theta / F_0  # K cd/m^2
-        self.mask = self.L > 0
+        self.theta_s, self.phi_s = self.theta_s % np.pi, (self.phi_s + np.pi) % (2 * np.pi) - np.pi
 
         # calculate the polarisation features
-        self.DOP = self.maximum_degree_of_polarisation() * self._linear_polarisation()
+        self.DOP = self.maximum_degree_of_polarisation() * self._linear_polarisation(x=self.theta_s, z=self.theta)
         self.AOP = (self.phi_s + np.pi / 2) % np.pi
 
         # analyse the electric field components to the parallel and the perpendicular to the polarisation axis
@@ -126,84 +215,19 @@ class SkyModel(object):
         self.is_generated = True
 
     def get_features(self, theta, phi):
-        # update the relevant sun position
-        self.sun.compute(self.obs)
-        self.lon, self.lat = self.sun2lonlat()
+        self.theta = theta
+        self.phi = phi
 
-        # calculate the angular distance between the sun and every point on the map
-        x, y, z = 0, np.rad2deg(self.lat), -np.rad2deg(self.lon)
-        theta_s, phi_s = hp.Rotator(rot=(z, y, x))(theta, phi)
-        theta_s, phi_s = theta_s % np.pi, phi_s % (2 * np.pi)
+        if not self.is_generated:
+            self.generate()
 
-        # calculate luminance of the sky
-        F_theta = self._relative_luminance(theta_s, theta)
-        F_0 = self._relative_luminance(np.array([self.lat]), np.zeros(1))
-        L_z = self.zenith_luminance(self.turbidity, self.lat)  # zenith luminance (K cd/m^2)
-        L = L_z * F_theta / F_0  # K cd/m^2
-
-        # calculate the polarisation features
-        DOP = self.maximum_degree_of_polarisation() * self._linear_polarisation(x=theta_s, z=theta)
-        AOP = (phi_s + np.pi / 2) % np.pi
-
-        return L / 25., DOP, AOP
+        return self.L / 25., self.DOP, self.AOP
 
     def maximum_degree_of_polarisation(self, c1=.6, c2=4.):
         return np.exp(-(self.turbidity-c1)/c2)
 
-    @property
-    def sun(self):
-        return self.__sun
-
-    @sun.setter
-    def sun(self, value):
-        self.__sun = value
-        self.lon, self.lat = self.sun2lonlat()
-
     def sun2lonlat(self, **kwargs):
         return sun2lonlat(self.__sun, **kwargs)
-
-    def _relative_luminance(self, x, z):
-        """
-        Combines the scattering indicatrix and luminance gradation functions to compute the total luminance observed at
-        the given sky element(s).
-
-        :param sky: scalar -- Relative backscattered light (scattering indicatrix)
-        :param x: angular distance between the observed element and the sun location [0, pi]
-        :param z: angular distance between the observed element and the zenith point [0, pi/2]
-        :return:  the total observed luminance (Cd/m^2) at the given element(s)
-        """
-        phi = self._luminance_gradation(z)
-        f = self._scattering_indicatrix(x)
-        return f * phi
-
-    def _luminance_gradation(self, z):
-        """
-        The luminance gradation function relates the luminance of a sky element to its zenith angle.
-
-        :param sky: the sky model
-        :param z: angular distance between the observed element and the zenith point -- [0, pi/2]
-        :return:  the observed luminance gradation (Cd/m^2) at the given element(s) -- [0, 1] for default parameters
-        """
-        a, b = self.A, self.B
-        phi = np.zeros_like(z)
-        # apply border conditions to avoid dividing with zero
-        z_p = np.all([z >= 0, z < np.pi / 2], axis=0)
-        phi[z_p] = 1. + a * np.exp(b / np.cos(z[z_p]))
-        phi[np.isclose(z, np.pi/2)] = 1.
-        return phi
-
-    def _scattering_indicatrix(self, x):
-        """
-        The scattering indicatrix which relates the relative luminance of the sky element
-        to its angular distance from the sun.
-
-        :param sky: the sky model
-        :param x: angular distance between the observed element and the sun location -- [0, pi]
-        :return:  the observed scattering indicatrix at the given element(s) -- [0, inf) for default parameters
-        """
-        c, d, e = self.C, self.D, self.E
-        # return 1. + c * (np.exp(d * x) - np.exp(d * np.pi / 2)) + e * np.square(np.cos(x))
-        return 1. + c * np.exp(d * x) + e * np.square(np.cos(x))
 
     def _linear_polarisation(self, x=None, z=None, c=np.pi/2):
         if x is None:
@@ -220,29 +244,29 @@ class SkyModel(object):
         p = 1./c * lp * (z * np.cos(z) + (np.pi/2 - z) * i)
         return np.clip(p, 0, 1)
 
-    @classmethod
-    def luminance_coefficients(cls, tau):
+    @staticmethod
+    def luminance_coefficients(tau):
         """
 
         :param tau: turbidity
         :return: A_L, B_L, C_L, D_L, E_L 
         """
-        return cls.T_L.dot(np.array([tau, 1.]))
+        return SkyModel.T_L.dot(np.array([tau, 1.]))
 
-    @classmethod
-    def turbidity_from_coefficients(cls, A, B, C, D, E):
-        T_T = np.linalg.pinv(cls.T_L)
-        tau, c = T_T.dot(np.array([A, B, C, D, E]))
+    @staticmethod
+    def turbidity_from_coefficients(a, b, c, d, e):
+        T_T = np.linalg.pinv(SkyModel.T_L)
+        tau, c = T_T.dot(np.array([a, b, c, d, e]))
 
         return tau / c
 
-    @classmethod
-    def zenith_luminance(cls, tau, theta_s=0.):
+    @staticmethod
+    def zenith_luminance(tau, theta_s=0.):
         chi = (4. / 9 - tau / 120.) * (np.pi - 2 * theta_s)
         return (4.0453 * tau - 4.9710) * np.tan(chi) - 0.2155 * tau + 2.4192
 
-    @classmethod
-    def plot_sun(cls, sky, fig=1, title="", mode=15, sub=(1, 4, 1), show=False):
+    @staticmethod
+    def plot_sun(sky, fig=1, title="", mode=15, sub=(1, 4, 1), show=False):
 
         assert (isinstance(mode, int) and 0 <= mode < 16) or isinstance(mode, basestring),\
             "Mode should be an integer between 0 and 15, or a string of the form 'bbbb' where b is for binary."
@@ -277,8 +301,8 @@ class SkyModel(object):
 
         return f
 
-    @classmethod
-    def plot_luminance(cls, sky, fig=2, title="", mode=15, sub=(1, 4, 1), show=False):
+    @staticmethod
+    def plot_luminance(sky, fig=2, title="", mode=15, sub=(1, 4, 1), show=False):
         import matplotlib.pyplot as plt
 
         assert (isinstance(mode, int) and 0 <= mode < 16) or isinstance(mode, basestring),\
@@ -314,8 +338,8 @@ class SkyModel(object):
 
         return f
 
-    @classmethod
-    def plot_polarisation(cls, sky, fig=3, title="", mode=3, sub=(1, 2, 1), show=False):
+    @staticmethod
+    def plot_polarisation(sky, fig=3, title="", mode=3, sub=(1, 2, 1), show=False):
         import matplotlib.pyplot as plt
 
         assert (isinstance(mode, int) and 0 <= mode < 4) or isinstance(mode, basestring),\
@@ -343,15 +367,16 @@ class SkyModel(object):
 
         return f
 
-    @classmethod
-    def rotate_sky(cls, sky, angle):
-        sky.theta, sky.phi = cls.rotate(sky.theta, sky.phi, angle)
+    @staticmethod
+    def rotate_sky(sky, yaw=0., pitch=0., roll=0.):
+        sky.theta, sky.phi = SkyModel.rotate(sky.theta, sky.phi, yaw=yaw, pitch=pitch, roll=roll)
         # sky.lon, sky.lat = rot(sky.lon, sky.lat)
         return sky
 
-    @classmethod
-    def rotate(cls, theta, phi, angle):
-        return hp.Rotator(rot=(angle, 0, 0))(theta, phi)
+    @staticmethod
+    def rotate(theta, phi, yaw=0., pitch=0., roll=0.):
+        theta, phi = hp.Rotator(rot=(yaw, pitch, roll))(theta, phi)
+        return theta, (phi + np.pi) % (2 * np.pi) - np.pi
 
 
 class BlackbodySkyModel(SkyModel):
@@ -472,6 +497,18 @@ class ChromaticitySkyModel(SkyModel):
 
         # initialise spectrum features
         self.W = self.W_D  # wavelengths
+        self.S = np.zeros((self.theta.shape[0], self.S_D.shape[1]))  # spectrum
+
+    def reset(self):
+        super(ChromaticitySkyModel, self).reset()
+
+        # initialise chromaticity coordinates
+        self.C_x = np.zeros_like(self.L)        # x chromaticity
+        self.C_x_z = self.zenith_x(self.turbidity)
+
+        self.C_y = np.zeros_like(self.L)        # y chromaticity
+        self.C_y_z = self.zenith_y(self.turbidity)
+
         self.S = np.zeros((self.theta.shape[0], self.S_D.shape[1]))  # spectrum
 
     def generate(self, show=False):

@@ -246,11 +246,13 @@ def pix2sph(pix, height=Height, width=Width):
     :param width:   the width of the image
     """
     x, y = np.float32(pix)
-    h, w = np.float(height - 1), np.float32(width - 1)
-    theta = np.arcsin(np.sqrt(np.square(2. * x / w - 1.) + np.square(2. * y / h - 1.)))
-    theta[np.isnan(theta)] = np.pi / 2
-    phi = np.arctan2(2. * y / h - 1., 2. * x / w - 1.)
-    phi[np.isnan(phi)] = np.pi / 2
+    h, w = np.float(height - 1), np.float(width - 1)
+    v = 2. * np.array([x / w, y / h]) - 1.
+    l = np.sqrt(np.square(v).sum(axis=0))
+    theta = np.nan * np.ones_like(l)
+    theta[l <= 1] = np.arcsin(l[l <= 1])
+    phi = (np.arctan2(v[1], v[0]) + np.pi) % (2 * np.pi) - np.pi
+    phi[l > 1] = np.nan
     return np.array([theta, phi])
 
 
