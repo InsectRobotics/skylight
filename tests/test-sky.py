@@ -47,8 +47,8 @@ for tau in xrange(1, 11):
     print ""
     # for i, s in enumerate(sky.S):
     #     S = np.array([sky.W, s]).T
-    #     title = "Theta: %0.2f, Phi: %0.2f" % (sky.theta[i], sky.phi[i])
-    #     name = "theta_%02d-phi_%03d" % (np.rad2deg(sky.theta[i]), np.rad2deg(sky.phi[i]))
+    #     title = "Theta: %0.2f, Phi: %0.2f" % (sky.theta_z[i], sky.phi_z[i])
+    #     name = "theta_%02d-phi_%03d" % (np.rad2deg(sky.theta_z[i]), np.rad2deg(sky.phi_z[i]))
     #     spectrum_plot(S, title, "%s.png" % name)
     #     rgb = rgb_from_xyz(xyz_from_spectrum(S))
     #     print rgb

@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.ion()
 
-
+# W = H = 1000
 sun = Sun()
 
 if __name__ == '__main__':
@@ -63,11 +63,11 @@ if __name__ == '__main__':
         x, y = x[j], y[j]
         theta, phi = theta[j], phi[j]
         sky.get_features(theta, phi)
-        sky = sky.rotate_sky(sky, yaw=90, pitch=60, roll=-60)
+        sky = sky.rotate_sky(sky, yaw=np.pi/2, pitch=np.pi/6, roll=np.pi/3)
         sky.generate()
 
         if mode == 0:
-            sph = np.stack([sky.theta, sky.phi, np.ones_like(sky.theta)])
+            sph = np.stack([sky.theta_z, sky.phi_z, np.ones_like(sky.theta_z)])
             image = np.zeros((W, H, 3))
             sky.DOP[np.isnan(sky.DOP)] = -1
             i = np.argsort(sky.DOP)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
             # SkyModel.plot_luminance(sky, fig=1, title="Luminance", mode="00100", sub=(1, 1, 1))
         elif mode == 1:
 
-            sph = np.stack([sky.theta, sky.phi, np.ones_like(sky.theta)])
+            sph = np.stack([sky.theta_z, sky.phi_z, np.ones_like(sky.theta_z)])
             image = np.zeros((W, H, 3))
             x, y = sph2pix(sph, W, H)
             sky.DOP[np.isnan(sky.DOP)] = 0.
