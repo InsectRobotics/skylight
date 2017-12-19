@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 # from colorpy.rayleigh import rayleigh_illuminated_spectrum
 # from colorpy.illuminants import
 from datetime import datetime
+from numbers import Number
 from .utils import *
 
 
@@ -445,8 +446,17 @@ class SkyModel(object):
         return f
 
     @staticmethod
-    def rotate_sky(sky, yaw=0., pitch=0., roll=0.):
-        sky.theta_z, sky.phi_z = SkyModel.rotate(sky.theta_z, sky.phi_z, yaw=yaw, pitch=pitch, roll=roll)
+    def rotate_sky(sky, yaw=0., pitch=0., roll=0., zenith=True):
+        if zenith:
+            sky.theta_z, sky.phi_z = SkyModel.rotate(sky.theta_z, sky.phi_z, yaw=yaw, pitch=pitch, roll=roll)
+        else:
+            theta = np.pi / 2 - sky.theta_z
+            phi = np.pi - sky.phi_z
+
+            theta, phi = SkyModel.rotate(theta, phi, yaw=yaw, pitch=pitch, roll=roll)
+            sky.phi_z = (2 * np.pi - phi) % (2 * np.pi) - np.pi
+            sky.theta_z = (3 * np.pi/2 - theta) % (2 * np.pi) - np.pi
+
         return sky
 
     @staticmethod
@@ -457,7 +467,11 @@ class SkyModel(object):
             theta, phi = hp.Rotator(rot=(0., np.rad2deg(pitch), 0.))(theta, phi)
         if not np.isclose(yaw, 0.):
             theta, phi = hp.Rotator(rot=(np.rad2deg(yaw), 0., 0.))(theta, phi)
-        return theta, (phi + np.pi) % (2 * np.pi) - np.pi
+        theta = (theta + np.pi) % (2 * np.pi) - np.pi
+        phi = (phi + np.pi) % (2 * np.pi) - np.pi
+        # if isinstance(theta, np.ndarray) and isinstance(phi, np.ndarray):
+        #     phi[theta > np.pi/2]
+        return theta, phi
 
 
 class BlackbodySkyModel(SkyModel):
