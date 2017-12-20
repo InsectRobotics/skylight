@@ -120,6 +120,8 @@ class SkyModel(object):
 
     @theta_z.setter
     def theta_z(self, value):
+        if np.any(np.isnan(value)):
+            return
         if self.__theta_z.size != value.size or not np.all(np.isclose(self.__theta_z, value)):
             self.__theta_z = value
             self.theta_s = value.copy()
@@ -131,6 +133,8 @@ class SkyModel(object):
 
     @phi_z.setter
     def phi_z(self, value):
+        if np.any(np.isnan(value)):
+            return
         if self.__phi_z.size != value.size or not np.all(np.isclose(self.__phi_z, value)):
             self.__phi_z = value
             self.phi_s = value.copy()
@@ -472,6 +476,27 @@ class SkyModel(object):
         # if isinstance(theta, np.ndarray) and isinstance(phi, np.ndarray):
         #     phi[theta > np.pi/2]
         return theta, phi
+
+    def copy(self):
+        sky = SkyModel()
+        sky.__obs = self.__obs.copy()
+        sky.__sun = self.__sun.copy()
+        sky.lon, sky.lat = self.lon, self.lat
+        sky.A, sky.B, sky.C, sky.D, sky.E = self.A, self.B, self.C, self.D, self.E
+        sky.gradation = self.gradation
+        sky.indicatrix = self.indicatrix
+        sky.turbidity = self.turbidity
+        sky.description = self.description
+        sky.__theta_z = self.__theta_z.copy()
+        sky.__phi_z = self.__phi_z.copy()
+        sky.theta_s = self.theta_s.copy()
+        sky.phi_s = self.phi_s.copy()
+        if self.mask is not None:
+            sky.mask = self.mask.copy()
+        sky.nside = self.nside
+        sky.is_generated = False
+
+        return sky
 
 
 class BlackbodySkyModel(SkyModel):
