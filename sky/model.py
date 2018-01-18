@@ -261,7 +261,7 @@ class SkyModel(object):
         if not self.is_generated:
             self.generate()
 
-        return (self.phi_s + np.pi / 2) % np.pi
+        return (self.phi_s + np.pi / 2) % (2 * np.pi)
 
     @property
     def E_par(self):
