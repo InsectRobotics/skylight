@@ -208,7 +208,7 @@ def rayleigh(x, sigma=np.pi / 2):
 
 
 def degree_of_polarisation(x, h_max=.8):
-    return h_max * np.square(np.sin(x)) / (1. + np.square(np.cos(x)))
+    return np.clip(h_max * np.square(np.sin(x)) / (1. + np.square(np.cos(x))), 0, 1)
 
 
 def get_seville_observer():

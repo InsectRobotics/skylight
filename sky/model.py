@@ -261,7 +261,7 @@ class SkyModel(object):
         if not self.is_generated:
             self.generate()
 
-        return (self.phi_s + np.pi / 2) % (2 * np.pi)
+        return (self.phi_s - self.lon + np.pi/2) % (2 * np.pi)
 
     @property
     def E_par(self):
@@ -293,7 +293,7 @@ class SkyModel(object):
         # calculate the angular distance between the sun and every point on the map
         x, y, z = 0, np.rad2deg(self.lat), -np.rad2deg(self.lon)
         self.theta_s, self.phi_s = hp.Rotator(rot=(z, y, x))(self.theta_z, self.phi_z)
-        self.theta_s, self.phi_s = self.theta_s % np.pi, (self.phi_s + np.pi) % (2 * np.pi) - np.pi
+        self.theta_s, self.phi_s = self.theta_s % (2 * np.pi), (self.phi_s + np.pi) % (2 * np.pi) - np.pi
 
         self.is_generated = True
 
@@ -307,8 +307,8 @@ class SkyModel(object):
         i_sun = self.prez_luminance_0
         i_90 = self.prez_luminance_90
         i = np.zeros_like(lp)
-        i[i_prez > 0] = (1./i_prez[i_prez > 0] - 1./i_sun) * (i_90 * i_sun) / (i_sun - i_90)
-        p = 1./c * lp * (z * np.cos(z) + (np.pi/2 - z) * i)
+        i[i_prez > 0] = np.clip((1./i_prez[i_prez > 0] - 1./i_sun) * (i_90 * i_sun) / (i_sun - i_90), 0, 1)
+        p = 1./c * lp * (z * np.cos(z) + (np.pi/2 - z) * (1 - i))
         return np.clip(p, 0, 1)
 
     def get_features(self, theta, phi):
