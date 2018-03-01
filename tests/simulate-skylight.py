@@ -2,6 +2,7 @@ from sky import SkyModel, get_seville_observer
 from datetime import datetime, timedelta
 from sys import argv
 from ephem import city, Sun
+from PIL import Image
 from sky.utils import pix2sph, sph2pix, Width as W, Height as H
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +10,8 @@ plt.ion()
 
 # W = H = 1000
 sun = Sun()
+
+W = H = 1000
 
 if __name__ == '__main__':
 
@@ -67,16 +70,16 @@ if __name__ == '__main__':
         sky = SkyModel(observer=obs, turbidity=tau, nside=1)
         sky.get_features(theta, phi)
         # print np.rad2deg(sky.lon), np.rad2deg(sky.lat)
-        for k in xrange(3):
-            sky = sky.rotate_sky(sky, yaw=-k * np.pi / 6)
-            sky = sky.rotate_sky(sky, pitch=-k * np.pi / 18)
-            sky = sky.rotate_sky(sky, roll=-k * np.pi / 9)
-            sky = sky.rotate_sky(
-                sky,
-                yaw=(k + 1) * np.pi/6,
-                pitch=(k + 1) * np.pi/18,
-                roll=(k + 1) * np.pi/9
-            )
+        for k in xrange(1):
+            # sky = sky.rotate_sky(sky, yaw=-k * np.pi / 6)
+            # sky = sky.rotate_sky(sky, pitch=-k * np.pi / 18)
+            # sky = sky.rotate_sky(sky, roll=-k * np.pi / 9)
+            # sky = sky.rotate_sky(
+            #     sky,
+            #     yaw=(k + 1) * np.pi/6,
+            #     pitch=(k + 1) * np.pi/18,
+            #     roll=(k + 1) * np.pi/9
+            # )
             sky.generate()
 
             print "(%03d, %03d, %03d) - theta: %03d, phi: %3d" % (
@@ -120,17 +123,21 @@ if __name__ == '__main__':
 
                 # SkyModel.plot_polarisation(sky, fig=1, title="", mode="10", sub=(1, 1, 1))
             elif mode == 2:
+                from matplotlib.cm import get_cmap
 
-                image = np.zeros((W, H))
+                image = np.zeros((W, H, 4))
                 sky.DOP[np.isnan(sky.DOP)] = 0.
                 i = np.argsort(sky.DOP)
-                image[x[i], y[i]] = sky.AOP[i]
+                image[x[i], y[i]] = get_cmap("hsv")(sky.AOP[i] / (2*np.pi))
                 plt.figure(1, figsize=(15, 15))
-                plt.imshow(image, cmap="hsv")
+                plt.imshow(image)
                 plt.xticks([])
                 plt.yticks([])
 
                 # SkyModel.plot_polarisation(sky, fig=1, title="", mode="01", sub=(1, 1, 1))
+
+            img = Image.fromarray((image * 255).astype(np.uint8))
+            img.save('aop-%s.png' % datetime.strftime(cur, "%Y%m%d%H%M"))
 
             plt.draw()
             plt.pause(.01)
