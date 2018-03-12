@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ff9d9098-0a75-4c06-8ad8-05ab6fdef696" name="Default" comment="Work on the CX modeling&#10;- Create the rate-based version&#10;- Try to make it run&#10;- Organise the agents and the networks">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../insectvision/learn/optimisation.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../compmodels/.idea/compmodels.iml" afterPath="$PROJECT_DIR$/../compmodels/.idea/compmodels.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../insectvision/.idea/insectvision.iml" afterPath="$PROJECT_DIR$/../insectvision/.idea/insectvision.iml" />
+    <list default="true" id="ff9d9098-0a75-4c06-8ad8-05ab6fdef696" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../insectvision/compoundeye/sensor-optimisation.py" afterPath="$PROJECT_DIR$/../insectvision/compoundeye/sensor-optimisation.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../insectvision/compoundeye/sensor.py" afterPath="$PROJECT_DIR$/../insectvision/compoundeye/sensor.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/skylight.iml" afterPath="$PROJECT_DIR$/.idea/skylight.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/vcs.xml" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../insectvision/learn/optimisation.py" afterPath="$PROJECT_DIR$/../insectvision/learn/optimisation.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="$PROJECT_DIR$/.idea/" />
@@ -30,11 +23,10 @@
       <file leaf-file-name="sensor-optimisation.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/../insectvision/compoundeye/sensor-optimisation.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="336">
-              <caret line="206" column="22" lean-forward="false" selection-start-line="206" selection-start-column="22" selection-end-line="206" selection-end-column="22" />
+            <state relative-caret-position="62">
+              <caret line="45" column="50" lean-forward="true" selection-start-line="45" selection-start-column="50" selection-end-line="45" selection-end-column="50" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
-                <element signature="e#379#7843#0" expanded="false" />
                 <element signature="e#450#1878#0" expanded="false" />
                 <element signature="e#2113#2511#0" expanded="false" />
                 <element signature="e#2630#2665#0" expanded="false" />
@@ -45,9 +37,9 @@
                 <element signature="e#7498#7548#0" expanded="false" />
                 <element signature="e#7600#7843#0" expanded="false" />
                 <element signature="e#7871#8118#0" expanded="false" />
-                <element signature="e#8601#9798#0" expanded="false" />
-                <element signature="e#9834#10980#0" expanded="false" />
-                <element signature="e#11016#13407#0" expanded="false" />
+                <element signature="e#8599#9796#0" expanded="false" />
+                <element signature="e#9832#10978#0" expanded="false" />
+                <element signature="e#11014#13405#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -56,8 +48,8 @@
       <file leaf-file-name="optimisation.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../insectvision/learn/optimisation.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2898">
-              <caret line="210" column="0" lean-forward="true" selection-start-line="210" selection-start-column="0" selection-end-line="210" selection-end-column="0" />
+            <state relative-caret-position="1162">
+              <caret line="86" column="21" lean-forward="false" selection-start-line="86" selection-start-column="21" selection-end-line="86" selection-end-column="21" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -68,7 +60,7 @@
       <file leaf-file-name="sensor.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../insectvision/compoundeye/sensor.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2687">
+            <state relative-caret-position="8134">
               <caret line="590" column="24" lean-forward="false" selection-start-line="590" selection-start-column="24" selection-end-line="590" selection-end-column="24" />
               <folding />
             </state>
@@ -178,9 +170,9 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="53" />
+    <option name="x" value="1966" />
     <option name="y" value="-4" />
-    <option name="width" value="1867" />
+    <option name="width" value="1874" />
     <option name="height" value="1084" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
@@ -218,7 +210,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
       <pane id="Scope">
         <subPane subId="Project Files">
           <PATH>
@@ -237,6 +228,7 @@
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -287,6 +279,24 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="data" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="opt" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="skylight" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="insectvision" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="compoundeye" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -324,24 +334,6 @@
     </option>
   </component>
   <component name="RunManager" selected="Python.sensor-optimisation">
-    <configuration default="false" name="test-sky" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="/usr/bin/python2.7" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="skylight" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/test-sky.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <method />
-    </configuration>
     <configuration default="false" name="test-ommatidium" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -409,6 +401,24 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="insectvision" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../insectvision/compoundeye/sensor-optimisation.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <method />
+    </configuration>
+    <configuration default="false" name="optimisation" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="/usr/bin/python2.7" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../insectvision/learn" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="insectvision" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../insectvision/learn/optimisation.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -485,19 +495,19 @@
       <method />
     </configuration>
     <list size="5">
-      <item index="0" class="java.lang.String" itemvalue="Python.test-sky" />
-      <item index="1" class="java.lang.String" itemvalue="Python.test-ommatidium" />
-      <item index="2" class="java.lang.String" itemvalue="Python.model" />
-      <item index="3" class="java.lang.String" itemvalue="Python.model (1)" />
-      <item index="4" class="java.lang.String" itemvalue="Python.sensor-optimisation" />
+      <item index="0" class="java.lang.String" itemvalue="Python.test-ommatidium" />
+      <item index="1" class="java.lang.String" itemvalue="Python.model" />
+      <item index="2" class="java.lang.String" itemvalue="Python.model (1)" />
+      <item index="3" class="java.lang.String" itemvalue="Python.sensor-optimisation" />
+      <item index="4" class="java.lang.String" itemvalue="Python.optimisation" />
     </list>
     <recent_temporary>
       <list size="5">
         <item index="0" class="java.lang.String" itemvalue="Python.sensor-optimisation" />
-        <item index="1" class="java.lang.String" itemvalue="Python.model (1)" />
-        <item index="2" class="java.lang.String" itemvalue="Python.model" />
-        <item index="3" class="java.lang.String" itemvalue="Python.test-ommatidium" />
-        <item index="4" class="java.lang.String" itemvalue="Python.test-sky" />
+        <item index="1" class="java.lang.String" itemvalue="Python.optimisation" />
+        <item index="2" class="java.lang.String" itemvalue="Python.model (1)" />
+        <item index="3" class="java.lang.String" itemvalue="Python.model" />
+        <item index="4" class="java.lang.String" itemvalue="Python.test-ommatidium" />
       </list>
     </recent_temporary>
   </component>
@@ -514,13 +524,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1490973373583</updated>
-    </task>
-    <task id="LOCAL-00002" summary="upload the notebook test with all the plots and tests">
-      <created>1492017121344</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1492017121344</updated>
     </task>
     <task id="LOCAL-00003" summary="Add test and Stoke's parameters implementation in notebook">
       <created>1492104623555</created>
@@ -858,7 +861,14 @@
       <option name="project" value="LOCAL" />
       <updated>1496912107331</updated>
     </task>
-    <option name="localTasksCounter" value="51" />
+    <task id="LOCAL-00051" summary="Create optimisation section in insectvision.learn package&#10;- summarise and utilise pygmo algorithms for the sensor problem&#10;- setup experiemnts to find the optimal parameters for the sensor">
+      <created>1520441897583</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1520441897583</updated>
+    </task>
+    <option name="localTasksCounter" value="52" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -882,18 +892,18 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="53" y="-4" width="1867" height="1084" extended-state="6" />
+    <frame x="1966" y="-4" width="1874" height="1084" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3292683" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Debug Logs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="right" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="true" show_stripe_button="true" weight="0.35965848" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" x="53" y="1104" width="1867" height="1056" />
+      <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="false" show_stripe_button="true" weight="0.35965848" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" x="1973" y="1104" width="1867" height="1056" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3292683" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32929292" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Execute Anonymous" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1697911" sideWeight="0.4878788" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.14034152" sideWeight="0.4878788" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32870865" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17022412" sideWeight="0.5121212" order="2" side_tool="true" content_ui="tabs" />
@@ -913,7 +923,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="extend Sky Model to use the default parameters from CIE for the sky luminance&#10;create notebook to demonstrate the behaviour of the different models" />
     <MESSAGE value="Reorganise structures" />
     <MESSAGE value="Create datasets, sky and ML models." />
     <MESSAGE value="Add ColorPy library cloned from original repo" />
@@ -938,7 +947,8 @@
     <MESSAGE value="Merge remote-tracking branch 'origin/master'&#10;&#10;# Conflicts:&#10;#&#9;notebooks/pca.ipynb" />
     <MESSAGE value="Modify dataset loader to use timesteps" />
     <MESSAGE value="Estimate compass using dun position" />
-    <option name="LAST_COMMIT_MESSAGE" value="Estimate compass using dun position" />
+    <MESSAGE value="Create optimisation section in insectvision.learn package&#10;- summarise and utilise pygmo algorithms for the sensor problem&#10;- setup experiemnts to find the optimal parameters for the sensor" />
+    <option name="LAST_COMMIT_MESSAGE" value="Create optimisation section in insectvision.learn package&#10;- summarise and utilise pygmo algorithms for the sensor problem&#10;- setup experiemnts to find the optimal parameters for the sensor" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1183,7 +1193,7 @@
     <entry file="file://$PROJECT_DIR$/../willshaw/agent/visualiser.py" />
     <entry file="file://$PROJECT_DIR$/../insectvision/compoundeye/sensor.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2687">
+        <state relative-caret-position="8134">
           <caret line="590" column="24" lean-forward="false" selection-start-line="590" selection-start-column="24" selection-end-line="590" selection-end-column="24" />
           <folding />
         </state>
@@ -1191,8 +1201,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/../insectvision/learn/optimisation.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2898">
-          <caret line="210" column="0" lean-forward="true" selection-start-line="210" selection-start-column="0" selection-end-line="210" selection-end-column="0" />
+        <state relative-caret-position="1162">
+          <caret line="86" column="21" lean-forward="false" selection-start-line="86" selection-start-column="21" selection-end-line="86" selection-end-column="21" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
@@ -1201,11 +1211,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/../insectvision/compoundeye/sensor-optimisation.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="336">
-          <caret line="206" column="22" lean-forward="false" selection-start-line="206" selection-start-column="22" selection-end-line="206" selection-end-column="22" />
+        <state relative-caret-position="62">
+          <caret line="45" column="50" lean-forward="true" selection-start-line="45" selection-start-column="50" selection-end-line="45" selection-end-column="50" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
-            <element signature="e#379#7843#0" expanded="false" />
             <element signature="e#450#1878#0" expanded="false" />
             <element signature="e#2113#2511#0" expanded="false" />
             <element signature="e#2630#2665#0" expanded="false" />
@@ -1216,9 +1225,9 @@
             <element signature="e#7498#7548#0" expanded="false" />
             <element signature="e#7600#7843#0" expanded="false" />
             <element signature="e#7871#8118#0" expanded="false" />
-            <element signature="e#8601#9798#0" expanded="false" />
-            <element signature="e#9834#10980#0" expanded="false" />
-            <element signature="e#11016#13407#0" expanded="false" />
+            <element signature="e#8599#9796#0" expanded="false" />
+            <element signature="e#9832#10978#0" expanded="false" />
+            <element signature="e#11014#13405#0" expanded="false" />
           </folding>
         </state>
       </provider>
