@@ -1,6 +1,6 @@
 import numpy as np
 from utils import pix2sph, Width as W, Height as H
-from sphere import vec2sph
+# from sphere import vec2sph
 
 
 def cubebox_angles(side):

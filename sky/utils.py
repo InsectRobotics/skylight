@@ -3,7 +3,7 @@ import ephem
 import yaml
 import os
 from sklearn.externals import joblib
-from sphere.transform import eleadj
+# from sphere.transform import eleadj
 
 
 Width = 64
@@ -173,7 +173,7 @@ def spectral_power(lam):
     b = np.exp((1.435 * np.power(10, 7)) / (2848 * 560)) - 1
     c = np.exp((1.435 * np.power(10, 7)) / (2848 * lam)) - 1
     return a * b / c
-
+3
 
 def sun2lonlat(s, lonlat=False, show=False):
     lon, lat = s.az, s.alt
