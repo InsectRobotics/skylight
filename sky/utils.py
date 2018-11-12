@@ -2,58 +2,9 @@ import numpy as np
 import ephem
 import yaml
 import os
-from sklearn.externals import joblib
-# from sphere.transform import eleadj
-
 
 Width = 64
 Height = 64
-
-__dir__ = os.path.dirname(os.path.realpath(__file__))
-with open(__dir__ + "/../colour/CIE-standard-parameters.yaml", 'r') as f:
-    try:
-        STANDARD_PARAMETERS = yaml.load(f)
-    except yaml.YAMLError as exc:
-        print exc
-try:
-    gradpar = joblib.load(__dir__ + '/gradation.pkl')
-except IOError:
-    from sklearn.linear_model import LogisticRegression
-
-    x, y = [], []
-    for gradation in xrange(1, 7):
-        a = STANDARD_PARAMETERS["gradation"][gradation]["a"]
-        b = STANDARD_PARAMETERS["gradation"][gradation]["b"]
-
-        x.append(np.array([a, b]))
-        y.append(np.array([gradation - 1]))
-
-    x, y = np.array(x), np.array(y)
-
-    gradpar = LogisticRegression(C=5)
-    gradpar.fit(x, y)
-
-    joblib.dump(gradpar, __dir__ + '/gradation.pkl')
-try:
-    indipar = joblib.load(__dir__ + '/indicatrix.pkl')
-except IOError:
-    from sklearn.linear_model import LogisticRegression
-
-    x, y = [], []
-    for indicatrix in xrange(1, 7):
-        c = STANDARD_PARAMETERS["indicatrix"][indicatrix]["c"]
-        d = STANDARD_PARAMETERS["indicatrix"][indicatrix]["d"]
-        e = STANDARD_PARAMETERS["indicatrix"][indicatrix]["e"]
-
-        x.append(np.array([c, d, e]))
-        y.append(np.array([indicatrix - 1]))
-
-    x, y = np.array(x), np.array(y)
-
-    indipar = LogisticRegression(C=5)
-    indipar.fit(x, y)
-
-    joblib.dump(indipar, __dir__ + '/indicatrix.pkl')
 
 
 def sky_clearness(Z, Dh, I, kapa=1.041):
@@ -88,79 +39,6 @@ def water_content(Td):
     return np.exp(.07 * Td - .075)
 
 
-def get_luminance_params(sky_type, indicatrix=None):
-    if indicatrix is None:  # sky_type is the index of the type of sky according to standard parameters
-        assert sky_type is None or 1 <= sky_type <= 15, "Type should be in [1, 15]."
-        gradation = get_sky_gradation(sky_type)
-        indicatrix = get_sky_indicatrix(sky_type)
-    else:  # sky_type is the gradation of the sky with respect to the zenith
-        gradation = sky_type
-
-    assert gradation is None or 1 <= gradation <= 6, "Gradation should be in [1, 6]."
-    assert indicatrix is None or 1 <= indicatrix <= 6, "indicatrix should be in [1, 6]."
-
-    a = STANDARD_PARAMETERS["gradation"][gradation]["a"]
-    b = STANDARD_PARAMETERS["gradation"][gradation]["b"]
-    c = STANDARD_PARAMETERS["indicatrix"][indicatrix]["c"]
-    d = STANDARD_PARAMETERS["indicatrix"][indicatrix]["d"]
-    e = STANDARD_PARAMETERS["indicatrix"][indicatrix]["e"]
-
-    return a, b, c, d, e
-
-
-def get_sky_description(sky_type, indicatrix=None):
-    if indicatrix is not None and 1 <= indicatrix <= 6:
-        sky_type = get_sky_type(sky_type, indicatrix)
-
-    if 1 <= sky_type <= 15:
-        return STANDARD_PARAMETERS["type"][sky_type - 1]["description"]
-    else:
-        return None
-
-
-def get_sky_gradation(sky_type):
-    if len(np.shape(sky_type)) == 0 or np.shape(np.squeeze(sky_type))[0] == 1:
-        if 1 <= sky_type <= 15:
-            return STANDARD_PARAMETERS["type"][sky_type - 1]["gradation"]
-        else:
-            return -1
-    else:
-        return gradpar.predict(np.reshape(sky_type, (-1, 5))[:, :2]).squeeze() + 1
-
-
-def get_sky_indicatrix(sky_type):
-    if len(np.shape(sky_type)) == 0 or np.shape(np.squeeze(sky_type))[0] == 1:
-        if 1 <= sky_type <= 15:
-            return STANDARD_PARAMETERS["type"][sky_type - 1]["indicatrix"]
-        else:
-            return -1
-    else:
-        return indipar.predict(np.reshape(sky_type, (-1, 5))[:, 2:]).squeeze() + 1
-
-
-def get_sky_type(gradation, indicatrix=None):
-    """
-    
-    :param gradation: the gradation type or a vector with the luminance parameters (when indicatrix=None) 
-    :param indicatrix: the indicatrix type
-    :return: 
-    """
-    if indicatrix is None:
-        indicatrix = get_sky_indicatrix(gradation)
-        gradation = get_sky_gradation(gradation)
-
-    if not (1 <= gradation <= 6):
-        return -1
-    if not (1 <= indicatrix <= 6):
-        return -2
-
-    for sky_type, value in enumerate(STANDARD_PARAMETERS["type"]):
-        if value["gradation"] == gradation and value["indicatrix"] == indicatrix:
-            return sky_type + 1
-
-    return 0
-
-
 def spectral_power(lam):
     """
     Relative spectral power distribution.
@@ -173,7 +51,7 @@ def spectral_power(lam):
     b = np.exp((1.435 * np.power(10, 7)) / (2848 * 560)) - 1
     c = np.exp((1.435 * np.power(10, 7)) / (2848 * lam)) - 1
     return a * b / c
-3
+
 
 def sun2lonlat(s, lonlat=False, show=False):
     lon, lat = s.az, s.alt
@@ -274,13 +152,13 @@ def pix2azi(pix, width=Width):
     return (np.pi - 2 * np.pi * pix.astype(float) / width) % (2 * np.pi)
 
 
-def ele2pix(theta, height=Height):
-    """
-    Transforms an elevation values to vertical pixel index.
-    :param theta:   the elevation
-    :param height:  the height of the image
-    """
-    return height - (height * (eleadj(theta) + np.pi / 2) / np.pi).astype(int)
+# def ele2pix(theta, height=Height):
+#     """
+#     Transforms an elevation values to vertical pixel index.
+#     :param theta:   the elevation
+#     :param height:  the height of the image
+#     """
+#     return height - (height * (eleadj(theta) + np.pi / 2) / np.pi).astype(int)
 
 
 def pix2ele(pix, height=Height):
@@ -309,3 +187,16 @@ def pix2ang(pix, num_of_pixels=640):
     """
     return np.pi * pix.astype(float) / num_of_pixels
 
+
+def tilt(theta_t, phi_t, theta, phi):
+
+    x = np.sin(theta) * (np.sin(phi) - 2 * np.square(np.sin(theta_t / 2)) * np.sin(phi_t) * np.cos(phi_t - phi)) +\
+        np.sin(theta_t) * np.cos(theta) * np.sin(phi_t)
+    y = -np.sin(theta) * np.sin(phi) * np.square(np.sin(theta_t / 2.)) * np.sin(2 * phi_t) +\
+        np.sin(theta) * np.cos(phi) * (np.cos(theta_t) * np.square(np.cos(phi_t)) + np.square(np.sin(phi_t))) +\
+        np.cos(theta) * np.sin(theta_t) * np.cos(phi_t)
+    z = np.cos(theta_t) * np.cos(theta) - np.sin(theta_t) * np.sin(theta) * np.cos(phi_t - phi)
+
+    e = np.arccos(z)
+    a = np.arctan2(x, y)
+    return e, a

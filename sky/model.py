@@ -2,12 +2,196 @@ import numpy as np
 import healpy as hp
 import ephem
 import matplotlib.pyplot as plt
-# from colorpy.illuminants import get_blackbody_illuminant
-# from colorpy.rayleigh import rayleigh_illuminated_spectrum
-# from colorpy.illuminants import
 from datetime import datetime
-from numbers import Number
 from .utils import *
+
+eps = np.finfo(float).eps
+
+# Transformation matrix of turbidity to luminance coefficients
+T_L = np.array([[ 0.1787, -1.4630],
+                [-0.3554,  0.4275],
+                [-0.0227,  5.3251],
+                [ 0.1206, -2.5771],
+                [-0.0670,  0.3703]])
+
+
+class Sky(object):
+
+    def __init__(self, theta_s=0., phi_s=0.):
+        self.__a, self.__b, self.__c, self.__d, self.__e = 0., 0., 0., 0., 0.
+        self.tau_L = 2.
+        self.__c1 = .6
+        self.__c2 = 4.
+        self.theta_s = theta_s
+        self.phi_s = phi_s
+        self.verbose = False
+        self.eta = np.full(1, np.nan)
+        self.theta = np.full(1, np.nan)
+        self.phi = np.full(1, np.nan)
+        self.__aop = np.full(1, np.nan)
+        self.__dop = np.full(1, np.nan)
+        self.__y = np.full(1, np.nan)
+
+        self.__is_generated = False
+
+    def __call__(self, *args, **kwargs):
+
+        theta = kwargs.get('theta', self.theta)
+        phi = kwargs.get('phi', self.phi)
+        uniform_polariser = kwargs.get('uniform_polariser', False)
+        noise = kwargs.get('noise', 0.)
+
+        # SKY INTEGRATION
+        gamma = np.arccos(np.cos(theta) * np.cos(self.theta_s) +
+                          np.sin(theta) * np.sin(self.theta_s) * np.cos(phi - self.phi_s))
+        # Intensity
+        i_prez = self.L(gamma, theta)
+        i_00 = self.L(0., self.theta_s)
+        i_90 = self.L(np.pi / 2, np.absolute(self.theta_s - np.pi / 2))
+        # influence of sky intensity
+        i = (1. / (i_prez + eps) - 1. / (i_00 + eps)) * i_00 * i_90 / (i_00 - i_90 + eps)
+        if uniform_polariser:
+            y = np.maximum(np.full_like(i_prez, self.Y_z), 0.)
+        else:
+            y = np.maximum(self.Y_z * i_prez / (i_00 + eps), 0.)  # Illumination
+
+        # Degree of Polarisation
+        lp = np.square(np.sin(gamma)) / (1 + np.square(np.cos(gamma)))
+        if uniform_polariser:
+            p = np.ones_like(lp)
+        else:
+            p = np.clip(2. / np.pi * self.M_p * lp * (theta * np.cos(theta) + (np.pi / 2 - theta) * i), 0., 1.)
+
+        # Angle of polarisation
+        if uniform_polariser:
+            a = np.full_like(p, self.phi_s + np.pi)
+        else:
+            _, a = tilt(self.theta_s, self.phi_s + np.pi, theta, phi)
+
+        # create cloud disturbance
+        if noise > 0:
+            eta = np.absolute(np.random.randn(*p.shape)) < noise
+            if self.verbose:
+                print "Noise level: %.4f (%.2f %%)" % (noise, 100. * eta.sum() / float(eta.size))
+            p[eta] = 0.  # destroy the polarisation pattern
+        else:
+            eta = np.zeros(1)
+
+        self.__theta = theta
+        self.__phi = phi
+        self.__y = y
+        self.__dop = p
+        self.__aop = a
+        self.eta = eta
+
+        self.__is_generated = True
+
+    def L(self, chi, z):
+        """
+        Prez. et. al. Luminance function
+
+        :param chi:
+        :param z:
+        :return:
+        """
+        i = z < (np.pi / 2)
+        f = np.zeros_like(z)
+        if z.ndim > 0:
+            f[i] = (1. + self.A * np.exp(self.B / (np.cos(z[i]) + eps)))
+        elif i:
+            f = (1. + self.A * np.exp(self.B / (np.cos(z) + eps)))
+        phi = (1. + self.C * np.exp(self.D * chi) + self.E * np.square(np.cos(chi)))
+        return f * phi
+
+    @property
+    def A(self):
+        return self.__a
+
+    @property
+    def B(self):
+        return self.__b
+
+    @property
+    def C(self):
+        return self.__c
+
+    @property
+    def D(self):
+        return self.__d
+
+    @property
+    def E(self):
+        return self.__e
+
+    @property
+    def c1(self):
+        return self.__c1
+
+    @property
+    def c2(self):
+        return self.__c2
+
+    @property
+    def tau_L(self):
+        return self.__tau_L
+
+    @tau_L.setter
+    def tau_L(self, value):
+        self._update_luminance_coefficients(value)
+
+    @property
+    def Y_z(self):
+        chi = (4. / 9. - self.tau_L / 120.) * (np.pi - 2 * self.theta_s)
+        return (4.0453 * self.tau_L - 4.9710) * np.tan(chi) - 0.2155 * self.tau_L + 2.4192
+
+    @property
+    def M_p(self):
+        return np.exp(-(self.tau_L - self.c1) / (self.c2 + eps))
+
+    @property
+    def I(self):
+        return
+
+    @property
+    def Y(self):
+        return self.__y
+
+    @property
+    def DOP(self):
+        return self.__dop
+
+    @property
+    def AOP(self):
+        return self.__aop
+
+    def _update_luminance_coefficients(self, tau_L):
+        self.__a, self.__b, self.__c, self.__d, self.__e = T_L.dot(np.array([tau_L, 1.]))
+        self._update_turbidity(self.A, self.B, self.C, self.D, self.E)
+
+    def _update_turbidity(self, a, b, c, d, e):
+        T_T = np.linalg.pinv(T_L)
+        tau_L, c = T_T.dot(np.array([a, b, c, d, e]))
+        self.__tau_L = tau_L / c  # turbidity correction
+
+    def copy(self):
+        sky = Sky()
+        sky.tau_L = self.tau_L
+        sky.theta_s = self.theta_s
+        sky.phi_s = self.phi_s
+        sky.__c1 = self.__c1
+        sky.__c2 = self.__c2
+        sky.theta_s = self.theta_s
+        sky.phi_s = self.phi_s
+        sky.verbose = self.verbose
+        sky.eta = self.eta
+        sky.theta = self.theta
+        sky.phi = self.phi
+        sky.__aop = self.__aop
+        sky.__dop = self.__dop
+        sky.__y = self.__y
+
+        sky.__is_generated = False
+        return sky
 
 
 class SkyModel(object):
@@ -497,251 +681,3 @@ class SkyModel(object):
         sky.is_generated = False
 
         return sky
-
-
-class BlackbodySkyModel(SkyModel):
-    alpha_default = -132.1
-    beta_default = 59.77
-
-    def __init__(self, *args, **kwargs):
-        super(BlackbodySkyModel, self).__init__(*args, **kwargs)
-
-        # initialise the luminance features
-        self.T = np.zeros_like(self.theta_z)  # colour temperature
-        self.W = np.zeros(471)              # wavelengths
-        self.S = np.zeros((self.theta_z.shape[0], self.W.shape[0]))  # spectrum
-
-    def generate(self, show=False):
-        super(BlackbodySkyModel, self).generate()
-
-        # calculate luminance of the sky
-        self.T = self.colour_temperature(self.L * 1000.)
-        # for i, t in enumerate(self.T[self.mask]):
-            # b = rayleigh_illuminated_spectrum(get_blackbody_illuminant(t))
-            # self.S[i, :] = b[:, 1]
-        self.W[:] = b[:, 0]
-
-        if show:
-            title = "Gradation towards zenith: {:d} | Scattering indicatrix: {:d} | {}".format(self.gradation,
-                                                                                               self.indicatrix,
-                                                                                               self.description[-1])
-            self.plot_luminance(self, fig=2, title=title, show=True)
-            # self.plot_polarisation(self, fig=3, show=True)
-
-    @classmethod
-    def colour_temperature(cls, L, alpha=alpha_default, beta=beta_default):
-        """
-        The temperature of the colour in the given sky element(s)
-        
-        :param L: the observed luminance
-        :param alpha: constant shifting of temperature
-        :param beta: linear transformation of the temperature
-        :return: the temperature of the colour (MK^(-1)) with respect to its luminance
-        """
-        gamma = cls.correlated_colour_temperature(L, alpha, beta)
-        T = np.zeros_like(gamma)
-        # compute the temperature of the colour only for the positive values of luminance (set zero values for the rest)
-        T[gamma > 0] = (10 ** 6) / gamma[gamma > 0]
-        return T
-
-    @classmethod
-    def correlated_colour_temperature(cls, L, alpha=alpha_default, beta=beta_default):
-        """
-        The correlated colour temperature expressed in Remeks (MK^(-1)).
-        
-        :param L: the observed luminance (cd/m^2)
-        :param alpha: constant shifting of temperature
-        :param beta: linear transformation of the temperature
-        :return: the correlated colour temperature (MK^(-1)) with respect to its luminance
-        """
-        gamma = np.zeros_like(L)
-        # compute the temperature of the colour only for the positive values of luminance (set zero values for the rest)
-        gamma[L > 0] = -alpha + beta * np.log(L[L > 0])
-        return gamma
-
-    @classmethod
-    def generate_features(cls, sky):
-        # s = sky.L[sky.mask]  # ignore luminance for now and use only the spectrum
-        b = sky.B[sky.mask, :]              # spectrum and luminance information (473)
-        d = sky.DOP[sky.mask, np.newaxis]   # degree of polarisation (1)
-        a = sky.AOP[sky.mask, np.newaxis]   # angle of polarisation (1)
-
-        features = np.concatenate((b, d, a), axis=1)
-        return features
-
-
-class ChromaticitySkyModel(SkyModel):
-
-    # Transformation matrix of turbidity to x chromaticity coefficients
-    T_x = np.array([[-0.0193, -0.2592],
-                    [-0.0665,  0.0008],
-                    [-0.0004,  0.2125],
-                    [-0.0641, -0.8989],
-                    [-0.0033,  0.0452]])
-    # Transformation matrix of turbidity to y chromaticity coefficients
-    T_y = np.array([[-0.0167, -0.2608],
-                    [-0.0950,  0.0092],
-                    [-0.0079,  0.2102],
-                    [-0.0441, -1.6537],
-                    [-0.0109,  0.0529]])
-    # Zenith chomaticity transformation matrix x
-    R_x = np.array([[ 0.0017, -0.0037,  0.0021,  0.0000],
-                    [-0.0290,  0.0638, -0.0320,  0.0039],
-                    [ 0.1169, -0.2120,  0.0605,  0.2589]])
-    # Zenith chomaticity transformation matrix y
-    R_y = np.array([[ 0.0028, -0.0061,  0.0032,  0.0000],
-                    [-0.0421,  0.0897, -0.0415,  0.0052],
-                    [ 0.1535, -0.2676,  0.0667,  0.2669]])
-    # Spectral radiant power of a D-illuminant and the first two eigenvector functions
-    S_D = np.array([[63.4, 65.8, 94.8, 104.8, 105.9, 96.8, 113.9, 125.6, 125.5, 121.3, 121.3, 113.5, 113.1, 110.8,
-                     106.5, 108.8, 105.3, 104.4, 100, 96, 95.1, 89.1, 90.5, 90.3, 88.4, 84, 85.1, 81.9, 82.6, 84.9,
-                     81.3, 71.9, 74.3, 76.4, 63.3, 71.7, 77, 65.2, 47.7, 68.6, 65],
-                    [38.5, 35, 43.4, 46.3, 43.9, 37.1, 36.7, 35.9, 32.6, 27.9, 24.3, 20.1, 16.2, 13.2, 8.6, 6.1, 4.2,
-                     1.9, 0, -1.6, -3.5, -3.5, -5.8, -7.2, -8.6, -9.5, -10.9, -10.7, -12, -14, -13.6, -12, -13.3,
-                     -12.9, -10.6, -11.6, -12.2, -10.2, -7.8, -11.2, -10.4],
-                    [3, 1.2, -1.1, -0.5, -0.7, -1.2, -2.6, -2.9, -2.8, -2.6, -2.6, -1.8, -1.5, -1.3, -1.2, -1, -0.5,
-                     -0.3, 0, 0.2, 0.5, 2.1, 3.2, 4.1, 4.7, 5.1, 6.7, 7.3, 8.6, 9.8, 10.2, 8.3, 9.6, 8.5, 7, 7.6, 8,
-                     6.7, 5.2, 7.4, 6.8]])
-    # wavelengths
-    W_D = np.linspace(380, 780, S_D.shape[1], endpoint=True)
-
-    def __init__(self, *args, **kwargs):
-        super(ChromaticitySkyModel, self).__init__(*args, **kwargs)
-
-        # initialise chromaticity coordinates
-        self.C_x = np.zeros_like(self.L)        # x chromaticity
-        self.C_x_z = self.zenith_x(self.turbidity)
-
-        self.C_y = np.zeros_like(self.L)        # y chromaticity
-        self.C_y_z = self.zenith_y(self.turbidity)
-
-        # initialise spectrum features
-        self.W = self.W_D  # wavelengths
-        self.S = np.zeros((self.theta_z.shape[0], self.S_D.shape[1]))  # spectrum
-
-    def reset(self):
-        super(ChromaticitySkyModel, self).reset()
-
-        # initialise chromaticity coordinates
-        self.C_x = np.zeros_like(self.L)        # x chromaticity
-        self.C_x_z = self.zenith_x(self.turbidity)
-
-        self.C_y = np.zeros_like(self.L)        # y chromaticity
-        self.C_y_z = self.zenith_y(self.turbidity)
-
-        self.S = np.zeros((self.theta_z.shape[0], self.S_D.shape[1]))  # spectrum
-
-    def generate(self, show=False):
-        super(ChromaticitySkyModel, self).generate()
-
-        lon, lat = self.sun2lonlat()
-        F_theta = self._relative_luminance(self.theta_s, self.theta_z)
-        F_0 = self._relative_luminance(np.array([lat]), np.zeros(1))
-        self.C_x_z = self.zenith_x(self.turbidity, lat)  # zenith x
-        self.C_x = self.C_x_z * F_theta / F_0
-        self.C_y_z = self.zenith_y(self.turbidity, lat)  # zenith y
-        self.C_y = self.C_y_z * F_theta / F_0
-        self.S[self.L > 0, :] = self.spectral_radiance(self.C_x[self.L > 0], self.C_y[self.L > 0])
-
-        if show:
-            title = "Gradation towards zenith: {:d} | Scattering indicatrix: {:d} | {}".format(self.gradation,
-                                                                                               self.indicatrix,
-                                                                                               self.description[-1])
-            self.plot_luminance(self, fig=2, title=title, show=True)
-            self.plot_polarisation(self, fig=3, show=True)
-
-    @classmethod
-    def x_coefficients(cls, tau):
-        """
-
-        :param tau: turbidity
-        :return: A_x, B_x, C_x, D_x, E_x 
-        """
-        return cls.T_x.dot(np.array([tau, 1.]))
-
-    @classmethod
-    def y_coefficients(cls, tau):
-        """
-
-        :param tau: turbidity
-        :return: A_y, B_y, C_y, D_y, E_y 
-        """
-        return cls.T_y.dot(np.array([tau, 1.]))
-
-    @classmethod
-    def zenith_x(cls, tau, theta_s=0.):
-        return np.array([np.square(tau), tau, 1])\
-            .dot(cls.R_x)\
-            .dot(np.array([np.power(theta_s, 3), np.square(theta_s), theta_s, 1]))
-
-    @classmethod
-    def zenith_y(cls, tau, theta_s=0.):
-        return np.array([np.square(tau), tau, 1])\
-            .dot(cls.R_y)\
-            .dot(np.array([np.power(theta_s, 3), np.square(theta_s), theta_s, 1]))
-
-    @classmethod
-    def plot_luminance(cls, sky, fig=2, title="", mode=31, sub=(1, 5, 1), show=False):
-        import matplotlib.pyplot as plt
-
-        assert (isinstance(mode, int) and 0 <= mode < 32) or isinstance(mode, basestring),\
-            "Mode should be an integer between 0 and 15, or a string of the form 'bbbb' where b is for binary."
-
-        if isinstance(mode, basestring):
-            mode = (int(mode[0]) << 3) + (int(mode[1]) << 2) + (int(mode[2]) << 1) + (int(mode[3]) << 0)
-        sub2 = sub[2]
-
-        lon, lat = sun2lonlat(sky.sun)
-        f = plt.figure(fig, figsize=(5 + 3 * (sub[1] - 1), 5 + 3 * (sub[0] - 1)))
-        if (mode >> 4) % 2 == 1:
-            hp.orthview(sky.si, rot=cls.VIEW_ROT, min=0, max=12, flip="geo", cmap="Greys", half_sky=True,
-                        title="Scattering indicatrix", unit=r'', sub=(sub[0], sub[1], sub2), fig=fig)
-            sub2 += 1
-        if (mode >> 3) % 2 == 1:
-            hp.orthview(sky.lg, rot=cls.VIEW_ROT, min=0, max=3, flip="geo", cmap="Greys", half_sky=True,
-                        title="Luminance gradation", unit=r'cd/m^2', sub=(sub[0], sub[1], sub2), fig=fig)
-            sub2 += 1
-        if (mode >> 2) % 2 == 1:
-            hp.orthview(sky.L, rot=cls.VIEW_ROT, min=0, max=30, flip="geo", cmap="Greys", half_sky=True,
-                        title="Luminance", unit=r'K cd/m^2', sub=(sub[0], sub[1], sub2), fig=fig)
-            sub2 += 1
-        if (mode >> 1) % 2 == 1:
-            hp.orthview(sky.C_x, rot=cls.VIEW_ROT, min=0, max=1.5, flip="geo", cmap="Greys", half_sky=True,
-                        title="Chromaticity x", sub=(sub[0], sub[1], sub2), fig=fig)
-            sub2 += 1
-        if (mode >> 0) % 2 == 1:
-            hp.orthview(sky.C_y, rot=cls.VIEW_ROT, min=0, max=1.5, flip="geo", cmap="Greys", half_sky=True,
-                        title="Chromaticity y", sub=(sub[0], sub[1], sub2), fig=fig)
-            sub2 += 1
-        # hp.projplot(lat, lon, 'yo')
-        f.suptitle(title)
-
-        if show:
-            plt.show()
-
-        return f
-
-    @classmethod
-    def spectral_radiance(cls, x, y):
-        return cls.S_D[0] +\
-               cls.M1(x, y)[:, np.newaxis] * cls.S_D[1] +\
-               cls.M2(x, y)[:, np.newaxis] * cls.S_D[2]
-
-    @classmethod
-    def M1(cls, x, y):
-        return (-1.3515 - 1.7703 * x + 5.9114 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
-
-    @classmethod
-    def M2(cls, x, y):
-        return (0.0300 - 31.4424 * x + 30.0717 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
-
-    @classmethod
-    def generate_features(cls, sky):
-        l = sky.L[sky.mask, np.newaxis]     # luminance information (1)
-        x = sky.C_x[sky.mask, np.newaxis]   # Chromaticity x information (1)
-        y = sky.C_y[sky.mask, np.newaxis]   # Chromaticity y information (1)
-        d = sky.DOP[sky.mask, np.newaxis]   # degree of polarisation (1)
-        a = sky.AOP[sky.mask, np.newaxis]   # angle of polarisation (1)
-
-        features = np.concatenate((l, x, y, d, a), axis=1)
-        return features
