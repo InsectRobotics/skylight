@@ -1,4 +1,4 @@
-from sky import SkyModel, get_seville_observer
+from sky import Sky, get_seville_observer
 from datetime import datetime, timedelta
 from sys import argv
 from ephem import city, Sun

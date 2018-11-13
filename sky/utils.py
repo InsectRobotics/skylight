@@ -1,7 +1,4 @@
 import numpy as np
-import ephem
-import yaml
-import os
 
 Width = 64
 Height = 64
@@ -53,43 +50,9 @@ def spectral_power(lam):
     return a * b / c
 
 
-def sun2lonlat(s, lonlat=False, show=False):
-    lon, lat = s.az, s.alt
-    colat = np.pi / 2 - lat
-
-    lon = (lon + np.pi) % (2 * np.pi) - np.pi
-
-    if show:
-        print('Sun:\tLon = %.2f\t Lat = %.2f\t Co-Lat = %.2f' % \
-              (np.rad2deg(lon), np.rad2deg(lat), np.rad2deg(colat)))
-
-    if lonlat:  # return the longitude and the latitude in degrees
-        return np.rad2deg(lon), np.rad2deg(lat)
-    else:  # return the lngitude and the co-latitude in radians
-        return lon, colat
-
-
-def hard_sigmoid(x, s=10):
-    return 1. / (1. + np.exp(-s * x))
-
-
-def rayleigh(x, sigma=np.pi / 2):
-    """
-    The Rayleigh distribution function. Input 'x' is non negative number and sigma is mode of the distribution.
-    :param x: non negative random variable
-    :param sigma: the mode of the distribution
-    :return: the rayleigh distribution value
-    """
-    # make sure the input is not negative
-    x = np.absolute(x)
-    return (x / np.square(sigma)) * np.exp(-np.square(x) / (2 * np.square(sigma)))
-
-
-def degree_of_polarisation(x, h_max=.8):
-    return np.clip(h_max * np.square(np.sin(x)) / (1. + np.square(np.cos(x))), 0, 1)
-
-
 def get_seville_observer():
+    import ephem
+
     seville = ephem.Observer()
     seville.lat = '37.392509'
     seville.lon = '-5.983877'

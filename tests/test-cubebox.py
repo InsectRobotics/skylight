@@ -1,4 +1,4 @@
-from sky import ChromaticitySkyModel, get_seville_observer, cubebox, skydome
+from sky import Sky, get_seville_observer, cubebox, skydome
 from compoundeye import CompoundEye
 from datetime import datetime, timedelta
 from sys import argv
@@ -209,10 +209,35 @@ if __name__ == '__main__':
     print "Date: %s" % obs.date.datetime().strftime("%Y-%m-%d")
     print "Mode: %s" % ["luminance", "dop", "aop"][mode], " - nside = %d" % nside
 
+    def fibonacci_sphere(samples, fov):
+
+        theta = np.deg2rad(fov / 2)  # angular distance of the outline from the zenith
+        phi = (1. + np.sqrt(5)) * np.pi
+
+        r_l = 1.  # the small radius of a hexagon (mm)
+        R_l = r_l * 2 / np.sqrt(3)  # the big radius of a lens (mm)
+        S_l = 3 * r_l * R_l  # area of a lens (mm^2)
+
+        S_a = samples * S_l  # area of the dome surface (mm^2)
+        R_c = np.sqrt(S_a / (2 * np.pi * (1. - np.cos(theta))))  # radius of the curvature (mm)
+        S_c = 4 * np.pi * np.square(R_c)  # area of the whole sphere (mm^2)
+
+        total_samples = int(samples * S_c / (1.2 * S_a))
+
+        indices = np.arange(0, total_samples, dtype=float)
+
+        thetas = np.arccos(2 * indices / (total_samples - .5) - 1)
+        phis = (phi * indices) % (2 * np.pi)
+
+        return thetas[-samples:], phis[-samples:]
+
+
+    theta, phi = fibonacci_sphere(1000, 180)
+
     while cur <= end:
         obs.date = cur
-        sky = ChromaticitySkyModel(observer=obs, turbidity=tau, nside=nside)
-        sky.generate()
+        sky = Sky.from_observer(obs=obs)
+        y, p, a = sky(theta, phi)
 
         for r in xrange(0, 360, 90):
             # create cubebox parts
