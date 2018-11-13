@@ -41,7 +41,7 @@ class Sky(object):
         self.verbose = False  # type: bool
         self.__is_generated = False  # type: bool
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, theta=None, phi=None, noise=0., eta=None, uniform_polariser=False):
         """
         Call the sky instance to generate the sky cues.
 
@@ -59,11 +59,8 @@ class Sky(object):
         """
 
         # set default arguments
-        theta = kwargs.get('theta', self.__theta) if len(args) < 1 else args[0]
-        phi = kwargs.get('phi', self.__phi) if len(args) < 2 else args[1]
-        noise = kwargs.get('noise', 0.) if len(args) < 3 else args[2]
-        eta = kwargs.get('eta', self.__eta) if len(args) < 4 else args[3]
-        uniform_polariser = kwargs.get('uniform_polariser', False) if len(args) < 5 else args[4]
+        theta = self.__theta if theta is None else theta
+        phi = self.__phi if phi is None else theta
 
         # save points of interest
         self.__theta = theta
@@ -102,15 +99,23 @@ class Sky(object):
             _, a = tilt(theta_s, phi_s + np.pi, theta, phi)
 
         # create cloud disturbance
-        if np.isnan(noise) or 'eta' in kwargs.keys():
-            pass
+        if noise is None or np.isnan(noise) or eta is not None:
+            if eta is None:
+                if self.__eta.size == self.__theta.size:
+                    eta = self.__eta
+                else:
+                    eta = np.zeros_like(self.__theta, dtype=int)
         elif noise > 0:
             eta = np.cast(np.absolute(np.random.randn(*p.shape)) < noise, int)
             if self.verbose:
                 print "Noise level: %.4f (%.2f %%)" % (noise, 100. * eta.sum() / float(eta.size))
-            p[eta] = 0.  # destroy the polarisation pattern
         else:
-            eta = np.zeros(1)
+            if eta is None:
+                if self.__eta.size == self.__theta.size:
+                    eta = self.__eta
+                else:
+                    eta = np.zeros_like(self.__theta, dtype=int)
+        p[eta] = 0.  # destroy the polarisation pattern
 
         self.__y = y
         self.__dop = p
